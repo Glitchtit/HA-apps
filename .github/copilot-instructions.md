@@ -111,7 +111,7 @@ All Gemini API calls go through `_call_gemini()` → `_call_gemini_json()` in `m
 | `grocy_stock/config.json` | `"version": "X.Y.Z"` |
 | `grocy_stock/CHANGELOG.md` | New `## X.Y.Z` section |
 
-CHANGELOGs follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) with Semantic Versioning. grocy_scraper uses bracketed headings (`## [1.10.0] - 2026-04-06`), HA-grocy-stock uses plain headings (`## 1.8.0`).
+CHANGELOGs use plain `## VERSION` headers (e.g. `## 1.11.0`). Do **not** use brackets or dates (`## [1.11.0] - 2026-04-06`) — HA Supervisor cannot parse that format.
 
 ### Home Assistant patterns
 
