@@ -92,11 +92,26 @@ All Gemini API calls go through `_call_gemini()` → `_call_gemini_json()` in `m
 - `GrocyAPIError` is the standard exception for all Grocy and Gemini API failures (defined in `grocy_client.py`, re-used in `main.py`).
 - API clients log warnings and continue on non-fatal errors; batch operations skip failed batches rather than aborting.
 
-### Versioning
+### Version bumps
 
-- CHANGELOG follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format with Semantic Versioning.
-- Addon version lives in `grocy_scraper_addon/config.yaml` and `custom_components/grocy_scraper/manifest.json`.
-- HA-grocy-stock version lives in `grocy_stock/config.json`.
+**Always bump the version** when making user-facing changes. When prompting from the root `HA-apps/` folder, remember that version files live **inside the submodules**. All version locations must be bumped together per submodule.
+
+**grocy_scraper** — bump all three:
+
+| File (relative to `grocy_scraper/`) | Field |
+|---|---|
+| `grocy_scraper_addon/config.yaml` | `version: "X.Y.Z"` |
+| `custom_components/grocy_scraper/manifest.json` | `"version": "X.Y.Z"` |
+| `CHANGELOG.md` | New `## [X.Y.Z] - YYYY-MM-DD` section |
+
+**HA-grocy-stock** — bump both:
+
+| File (relative to `HA-grocy-stock/`) | Field |
+|---|---|
+| `grocy_stock/config.json` | `"version": "X.Y.Z"` |
+| `grocy_stock/CHANGELOG.md` | New `## X.Y.Z` section |
+
+CHANGELOGs follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) with Semantic Versioning. grocy_scraper uses bracketed headings (`## [1.10.0] - 2026-04-06`), HA-grocy-stock uses plain headings (`## 1.8.0`).
 
 ### Home Assistant patterns
 
