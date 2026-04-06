@@ -102,7 +102,7 @@ All Gemini API calls go through `_call_gemini()` → `_call_gemini_json()` in `m
 |---|---|
 | `grocy_scraper_addon/config.yaml` | `version: "X.Y.Z"` |
 | `custom_components/grocy_scraper/manifest.json` | `"version": "X.Y.Z"` |
-| `CHANGELOG.md` | New `## [X.Y.Z] - YYYY-MM-DD` section |
+| `grocy_scraper_addon/CHANGELOG.md` | New `## [X.Y.Z] - YYYY-MM-DD` section |
 
 **HA-grocy-stock** — bump both:
 
