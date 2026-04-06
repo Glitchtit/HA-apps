@@ -9,6 +9,8 @@ This is a **Home Assistant add-on repository** containing two independent Git su
 
 The root repo (`HA-apps`) only ties them together via `repository.json` and `.gitmodules`. Each submodule has its own Git history and versioning.
 
+**After committing inside a submodule, also commit the updated submodule reference in the root `HA-apps` repo** (e.g. `cd /path/to/HA-apps && git add grocy_scraper && git commit`). Otherwise HA-apps will still point at the old submodule commit.
+
 ## Build, Test, and Lint
 
 ### grocy_scraper (Python)
