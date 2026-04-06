@@ -4,7 +4,7 @@
 
 This is a **Home Assistant add-on repository** containing two independent Git submodules:
 
-- **`grocy_scraper/`** — Python CLI + HA add-on + HA custom integration that scrapes Finnish grocery sites (k-ruoka.fi, s-kaupat.fi) and populates a [Grocy](https://grocy.info) database. Uses Gemini AI for product sorting, dating, grouping, and pack detection.
+- **`grocy_scraper/`** — Python HA add-on + HA custom integration that scrapes Finnish grocery sites (k-ruoka.fi, s-kaupat.fi) and populates a [Grocy](https://grocy.info) database. Uses Gemini AI for product sorting, dating, grouping, and pack detection.
 - **`HA-grocy-stock/`** — React + nginx HA add-on providing a Grocy stock dashboard with one-click consume, product grouping, and optional barcode scanning.
 
 The root repo (`HA-apps`) only ties them together via `repository.json` and `.gitmodules`. Each submodule has its own Git history and versioning.
@@ -46,13 +46,14 @@ No tests or linter configured.
 
 ## Architecture
 
-### grocy_scraper — Three Deployment Modes
+### grocy_scraper — Two Deployment Modes
 
-The same codebase ships three ways:
+The same codebase ships two ways:
 
-1. **Standalone CLI** (`main.py`) — Full-featured entry point with argparse. Has extra functions not in the addon version (e.g., `_discover_single_barcode`).
-2. **HA Supervisor Add-on** (`grocy_scraper_addon/`) — Docker container with s6-overlay running two services: the periodic scraper and an ingress web server (`ingress_server.py` on port 8099).
-3. **HA Custom Integration** (`custom_components/grocy_scraper/`) — Sidebar panel + config flow + WebSocket API. Runs discover on a timer via `async_track_time_interval`.
+1. **HA Supervisor Add-on** (`grocy_scraper_addon/`) — Docker container with s6-overlay running two services: the periodic scraper and an ingress web server (`ingress_server.py` on port 8099). The entry point is `grocy_scraper_addon/main.py`.
+2. **HA Custom Integration** (`custom_components/grocy_scraper/`) — Sidebar panel + config flow + WebSocket API. Runs discover on a timer via `async_track_time_interval`.
+
+> The standalone CLI (`main.py` at repo root) was removed in v1.12.0. All functionality is in `grocy_scraper_addon/main.py`.
 
 ### grocy_scraper — Key Modules
 
@@ -62,7 +63,7 @@ The same codebase ships three ways:
 | `grocy_scraper/grocy_client.py` | Grocy REST API client (products, barcodes, images, stock) |
 | `grocy_scraper/barcodebuddy_client.py` | Barcode Buddy web scraper with session auth |
 | `grocy_scraper/skaupat_client.py` | S-kaupat.fi EAN lookup |
-| `main.py` | CLI entry point — argparse, Gemini AI helpers, all `--sort`/`--date`/`--group`/`--optimize` logic |
+| `grocy_scraper_addon/main.py` | Entry point — argparse, Gemini AI helpers, all `--sort`/`--date`/`--group`/`--optimize` logic |
 | `grocy_scraper_addon/ingress_server.py` | HTTP server for the HA ingress web UI (search, discover, AI endpoints) |
 | `custom_components/grocy_scraper/ws_api.py` | WebSocket API handlers for the HA sidebar panel |
 | `custom_components/grocy_scraper/www/panel.js` | Vanilla JS web component (shadow DOM) for the sidebar UI |
@@ -83,15 +84,15 @@ Frontend: React 18 + Vite + Tailwind CSS. Single main component in `App.jsx`.
 
 The `grocy_scraper/` Python package is **copied identically** into `grocy_scraper_addon/grocy_scraper/`. Any change to `scraper.py`, `grocy_client.py`, `barcodebuddy_client.py`, or `skaupat_client.py` must be applied to both locations.
 
-`main.py` (CLI) and `grocy_scraper_addon/main.py` (addon) share most code but have **diverged** — the CLI version (~2038 lines) has extra functions the addon version (~1917 lines) doesn't. Changes to shared logic (Gemini helpers, AI functions, argparse setup) must be applied to both files.
+There is only **one** `main.py` — at `grocy_scraper_addon/main.py`. The old CLI copy at repo root was removed in v1.12.0.
 
 ### Gemini AI integration
 
-All Gemini API calls go through `_call_gemini()` → `_call_gemini_json()` in `main.py`. The JSON wrapper retries up to `_GEMINI_MAX_RETRIES` times with exponential back-off and sanitizes control characters from responses. Batch sizes: 100 for sort/date/group, 1000 for optimize.
+All Gemini API calls go through `_call_gemini()` → `_call_gemini_json()` in `grocy_scraper_addon/main.py`. The JSON wrapper retries up to `_GEMINI_MAX_RETRIES` times with exponential back-off and sanitizes control characters from responses. Batch sizes: 100 for sort/date/group, 1000 for optimize.
 
 ### Error handling
 
-- `GrocyAPIError` is the standard exception for all Grocy and Gemini API failures (defined in `grocy_client.py`, re-used in `main.py`).
+- `GrocyAPIError` is the standard exception for all Grocy and Gemini API failures (defined in `grocy_client.py`, re-used in `grocy_scraper_addon/main.py`).
 - API clients log warnings and continue on non-fatal errors; batch operations skip failed batches rather than aborting.
 
 ### Version bumps
