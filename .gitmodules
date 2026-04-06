@@ -1,0 +1,6 @@
+[submodule "HA-grocy-stock"]
+	path = HA-grocy-stock
+	url = git@github.com:Glitchtit/HA-grocy-stock.git
+[submodule "grocy_scraper"]
+	path = grocy_scraper
+	url = git@github.com:Glitchtit/grocy_scraper.git
