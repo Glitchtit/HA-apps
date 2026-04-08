@@ -2,10 +2,11 @@
 
 ## Repository Structure
 
-This is a **Home Assistant add-on repository** containing two independent Git submodules:
+This is a **Home Assistant add-on repository** containing three independent Git submodules:
 
 - **`grocy_scraper/`** — Python HA add-on + HA custom integration that scrapes Finnish grocery sites (k-ruoka.fi, s-kaupat.fi) and populates a [Grocy](https://grocy.info) database. Uses Gemini AI for product sorting, dating, grouping, and pack detection.
 - **`HA-grocy-stock/`** — React + nginx HA add-on providing a Grocy stock dashboard with one-click consume, product grouping, and optional barcode scanning.
+- **`HA-grocy-recipes/`** — React + Python + nginx HA add-on for AI-powered recipe scraping. Users paste a recipe URL, Gemini AI extracts the recipe, and ingredients are matched to Grocy products.
 
 The root repo (`HA-apps`) only ties them together via `repository.json` and `.gitmodules`. Each submodule has its own Git history and versioning.
 
@@ -37,6 +38,17 @@ No linter or formatter is configured.
 
 ```bash
 cd HA-grocy-stock/grocy_stock/frontend
+npm install
+npm run dev      # Dev server (Vite)
+npm run build    # Production build → dist/
+```
+
+No tests or linter configured.
+
+### HA-grocy-recipes (React + Python)
+
+```bash
+cd HA-grocy-recipes/grocy_recipes/frontend
 npm install
 npm run dev      # Dev server (Vite)
 npm run build    # Production build → dist/
@@ -78,6 +90,17 @@ A multi-stage Docker build: Node 20 builds the React frontend, then nginx serves
 
 Frontend: React 18 + Vite + Tailwind CSS. Single main component in `App.jsx`.
 
+### HA-grocy-recipes — Architecture
+
+Two s6-overlay services: nginx (port 8099) serves the React SPA and proxies APIs, Python backend (port 8100) handles recipe scraping via Gemini AI, product matching, and Grocy CRUD.
+
+- `/api/grocy/*` → Grocy (API key injected server-side via nginx)
+- `/api/scraper/*` → Grocy Scraper addon (auto-detected)
+- `/api/backend/*` → Python backend (localhost:8100)
+- `/api/grocy-files/*` → Grocy file server (recipe images)
+
+Frontend: React 18 + Vite + Tailwind CSS. Single main component in `App.jsx`.
+
 ## Key Conventions
 
 ### Duplicated files — keep them in sync
@@ -114,6 +137,13 @@ All Gemini API calls go through `_call_gemini()` → `_call_gemini_json()` in `g
 | `grocy_stock/config.json` | `"version": "X.Y.Z"` |
 | `grocy_stock/CHANGELOG.md` | New `## X.Y.Z` section |
 
+**HA-grocy-recipes** — bump both:
+
+| File (relative to `HA-grocy-recipes/`) | Field |
+|---|---|
+| `grocy_recipes/config.json` | `"version": "X.Y.Z"` |
+| `grocy_recipes/CHANGELOG.md` | New `## X.Y.Z` section |
+
 CHANGELOGs use plain `## VERSION` headers (e.g. `## 1.11.0`). Do **not** use brackets or dates (`## [1.11.0] - 2026-04-06`) — HA Supervisor cannot parse that format.
 
 ### Home Assistant patterns
@@ -122,6 +152,7 @@ CHANGELOGs use plain `## VERSION` headers (e.g. `## 1.11.0`). Do **not** use bra
 - API keys are injected **server-side** (nginx headers or Python code) — never exposed to the browser.
 - Add-on services use **s6-overlay** (`rootfs/etc/s6-overlay/s6-rc.d/`).
 - Product names and UI strings are in **Finnish** (the target grocery sites are Finnish).
+- All three addons follow the same patterns: React + Vite + Tailwind frontends, ingress-aware URLs, server-side API key injection.
 
 ### Testing style
 
