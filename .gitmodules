@@ -4,3 +4,6 @@
 [submodule "grocy_scraper"]
 	path = grocy_scraper
 	url = git@github.com:Glitchtit/grocy_scraper.git
+[submodule "HA-grocy-recipes"]
+	path = HA-grocy-recipes
+	url = git@github.com:Glitchtit/HA-grocy-recipes.git
