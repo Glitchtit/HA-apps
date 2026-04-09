@@ -7,3 +7,6 @@
 [submodule "HA-grocy-recipes"]
 	path = HA-grocy-recipes
 	url = https://github.com/Glitchtit/HA-grocy-recipes.git
+[submodule "HA-storage"]
+	path = HA-storage
+	url = https://github.com/Glitchtit/HA-storage.git
