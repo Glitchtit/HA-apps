@@ -2,21 +2,35 @@
 
 [![Open your Home Assistant instance and show the add add-on repository dialog.](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2FGlitchtit%2FHA-apps)
 
-A collection of Home Assistant add-ons, managed via Git submodules for easy maintenance.
+A collection of Home Assistant add-ons for household inventory, recipe management, and grocery shopping. Managed via Git submodules.
 
 ## Add-ons
 
 | Add-on | Description |
 |--------|-------------|
-| [Grocy Stock](HA-grocy-stock/grocy_stock) | Grocy stock management dashboard for Home Assistant |
-| [Grocy Scraper](grocy_scraper/grocy_scraper_addon) | Scrapes k-ruoka.fi for Finnish food products and populates a Grocy database |
+| [Storage](HA-storage/storage) | Central SQLite database for products, stock, recipes, and shopping lists |
+| [Scraper](grocy_scraper/grocy_scraper_addon) | Scrapes Finnish grocery sites (k-ruoka.fi, s-kaupat.fi) and populates Storage with AI-powered optimization |
+| [Stock](HA-grocy-stock/grocy_stock) | Stock management dashboard with barcode scanning and one-click consume |
+| [Recipe](HA-grocy-recipes/grocy_recipes) | AI-powered recipe scraping — paste a URL, get ingredients matched to your inventory |
+
+## Architecture
+
+All add-ons communicate through the **Storage** add-on, which provides a REST API backed by SQLite. The Scraper, Stock, and Recipe add-ons include retry logic to handle any startup ordering.
+
+```
+Storage  ←──  Scraper  (discovers products, AI optimization)
+   ↑
+   ├──────  Stock     (consume/add stock, barcode scanning)
+   │
+   └──────  Recipe    (scrape recipes, match ingredients)
+```
 
 ## Installation
 
 1. Add this repository to Home Assistant:
    **Settings → Add-ons → Add-on Store → ⋮ → Repositories**
 2. Paste: `https://github.com/Glitchtit/HA-apps`
-3. Install the desired add-on from the list.
+3. Install **Storage** first, then the other add-ons.
 
 ## Development
 
