@@ -10,3 +10,6 @@
 [submodule "HA-storage"]
 	path = HA-storage
 	url = https://github.com/Glitchtit/HA-storage.git
+[submodule "HA-chores"]
+	path = HA-chores
+	url = https://github.com/Glitchtit/HA-chores.git
