@@ -1,180 +1,82 @@
 # Copilot Instructions for HA-apps
 
-## Repository Structure
+## Build, test, and lint
 
-This is a **Home Assistant add-on repository** containing four independent Git submodules:
+The root repository is a submodule umbrella. There is no single top-level build or test command; run commands inside the touched submodule.
 
-- **`grocy_scraper/`** — Python HA add-on (slug: `grocy_scraper`) + HA custom integration. Scrapes Finnish grocery sites (k-ruoka.fi, s-kaupat.fi) and populates **HA-Storage** via `StorageClient`. Uses Gemini AI for product sorting, dating, grouping, and optimization.
-- **`HA-grocy-stock/`** — React + nginx HA add-on (slug: `grocy_stock`). Stock management dashboard with one-click consume, product grouping, and barcode scanning. Talks to **Storage API**.
-- **`HA-grocy-recipes/`** — React + Python + nginx HA add-on (slug: `grocy_recipes`). AI-powered recipe scraping. Gemini AI extracts recipes from URLs, ingredients matched to Storage products. Fetches AI key from Storage.
-- **`HA-storage/`** — FastAPI + SQLite + React HA add-on (slug: `ha_storage`). **Central data store** for the entire ecosystem, replacing Grocy and Barcode Buddy entirely.
-
-The root repo (`HA-apps`) ties them together via `repository.json` and `.gitmodules`. Each submodule has its own Git history and versioning.
-
-**Submodule workflow**: Push inside the submodule first, then commit the updated submodule reference in the root repo (e.g. `cd /path/to/HA-apps && git add grocy_scraper && git commit`). `.gitmodules` uses HTTPS (HA Supervisor compatibility); local remotes can use SSH for push.
-
-## Build, Test, and Lint
-
-### grocy_scraper (Python)
+### `grocy_scraper/` (Python add-on + HA integration)
 
 ```bash
 cd grocy_scraper
-python -m pytest tests/ -v                # 445 tests
-
-python -m pytest tests/test_storage_client.py -v                                    # Single file
-python -m pytest tests/test_main.py::TestAiOptimize::test_optimize_updates_location -v  # Single test
+python -m pytest tests/ -v
+python -m pytest tests/test_storage_client.py -v
+python -m pytest tests/test_main.py::TestAiOptimize::test_optimize_updates_location -v
 ```
 
-No linter or formatter configured.
+No linter or formatter is configured.
 
-### HA-storage (Python + React)
+### `HA-storage/storage/` (FastAPI + SQLite API)
 
 ```bash
-# API tests
 cd HA-storage/storage
-python -m pytest app/tests/ -v   # 54 tests
-
-# Frontend
-cd HA-storage/storage/frontend
-npm install && npm run build
+python -m pytest app/tests/ -v
+python -m pytest app/tests/test_api.py -v
+python -m pytest app/tests/test_api.py::TestHealth::test_health -v
 ```
 
-### HA-grocy-stock (React)
+### `HA-storage/storage/frontend/` (React UI)
+
+```bash
+cd HA-storage/storage/frontend
+npm install
+npm run dev
+npm run build
+```
+
+No linter is configured.
+
+### `HA-grocy-stock/grocy_stock/frontend/` (React UI)
 
 ```bash
 cd HA-grocy-stock/grocy_stock/frontend
-npm install && npm run build
+npm install
+npm run dev
+npm run build
 ```
 
-No tests or linter configured.
+No tests or linter are configured.
 
-### HA-grocy-recipes (React + Python)
+### `HA-grocy-recipes/grocy_recipes/frontend/` (React UI)
 
 ```bash
 cd HA-grocy-recipes/grocy_recipes/frontend
-npm install && npm run build
+npm install
+npm run dev
+npm run build
 ```
 
-No tests or linter configured.
+No tests or linter are configured for Recipe. The Python backend currently has no dedicated automated test suite in this repo.
 
-## Architecture
+## High-level architecture
 
-### Central Data Store — HA-Storage
+- The root `HA-apps` repo is a release umbrella, not an application entry point. It ties together four independent Git submodules via `.gitmodules` and `repository.json`, and each submodule ships as its own Home Assistant add-on or integration with separate versioning and changelog history.
+- `HA-storage/` is the system of record. It runs nginx on `8099`, FastAPI on `8100`, and a shared SQLite database at `/data/storage.db`. All other apps talk to Storage over its REST API for products, stock, recipes, shopping, config, files, and AI-related operations. Storage also owns optimize orchestration through background `/api/ai/optimize` tasks, with single-flight execution and pollable task status.
+- `grocy_scraper/` is the ingestion and product-discovery layer. The same scraper codebase ships in two modes: the Supervisor add-on (`grocy_scraper_addon/`), which runs the periodic scraper plus an ingress web server, and the Home Assistant custom integration (`custom_components/grocy_scraper/`), which exposes config flow, sidebar UI, and WebSocket handlers. Both paths write into Storage through `StorageClient`.
+- `HA-grocy-stock/` is a React SPA served by nginx. It does not own business data; it proxies `/api/storage/*` to Storage and `/api/scraper/*` to the scraper add-on and keeps most frontend behavior in a single `frontend/src/App.jsx`.
+- `HA-grocy-recipes/` is split between a React SPA and a Python backend behind nginx. nginx proxies `/api/storage/*`, `/api/scraper/*`, `/api/backend/*`, and `/api/storage-files/*`. The backend supports Gemini, Claude, and Ollama, exposes provider-aware `/api/config` readiness, scrapes recipe pages, extracts structured recipe data, and matches ingredients against Storage products.
+- Startup order is intentionally loose because Home Assistant may bring services up in different sequences. Storage is expected to come up first, while Scraper and the Recipe backend block on Storage health at startup and the Stock/Recipe frontends poll Storage health with bounded retry loops before enabling their main UI flows.
 
-HA-Storage (FastAPI + SQLite) is the central data store. All other apps communicate with it via REST API. There are **no external dependencies** on Grocy or Barcode Buddy.
+## Key conventions
 
-Two s6-overlay services: nginx (port 8099) + FastAPI (port 8100). SQLite database at `/data/storage.db`.
-
-- nginx serves the React SPA and proxies `/api/*` → FastAPI
-- 11 API routers: products, stock, barcodes, units, conversions, locations, groups, recipes, shopping, barcode-queue, config
-- Seeded data: 9 Finnish units, 12 conversions, 3 locations
-- Frontend: React 18 + Vite + Tailwind CSS. English UI. Dark mode.
-
-### Scraper — Two Deployment Modes
-
-The same codebase ships two ways:
-
-1. **HA Supervisor Add-on** (`grocy_scraper_addon/`) — Docker container with s6-overlay running two services: the periodic scraper and an ingress web server (`ingress_server.py` on port 8099). Uses `StorageClient` to talk to Storage API. Entry point: `grocy_scraper_addon/main.py`.
-2. **HA Custom Integration** (`custom_components/grocy_scraper/`) — Sidebar panel + config flow + WebSocket API. Runs discover on a timer via `async_track_time_interval`.
-
-### Scraper — Key Modules
-
-| Module | Role |
-|---|---|
-| `grocy_scraper/scraper.py` | K-ruoka.fi scraper (GraphQL + kr-api REST) |
-| `grocy_scraper/storage_client.py` | Storage REST API client (replaced GrocyClient) |
-| `grocy_scraper/skaupat_client.py` | S-kaupat.fi EAN lookup |
-| `grocy_scraper_addon/main.py` | Entry point — Gemini AI helpers, optimize/sort/date/group logic |
-| `grocy_scraper_addon/ingress_server.py` | HTTP server for the HA ingress web UI |
-| `custom_components/grocy_scraper/ws_api.py` | WebSocket API handlers for the HA sidebar panel |
-| `custom_components/grocy_scraper/www/panel.js` | Vanilla JS web component (shadow DOM) for the sidebar UI |
-
-### Stock — Architecture
-
-Multi-stage Docker build: Node 20 builds the React frontend, then nginx serves it on port 8099 with reverse proxies:
-
-- `/api/storage/*` → Storage API
-- `/api/scraper/*` → Scraper addon
-
-Frontend: React 18 + Vite + Tailwind CSS. Single main component in `App.jsx`. Dark mode.
-
-### Recipe — Architecture
-
-Two s6-overlay services: nginx (port 8099) serves the React SPA and proxies APIs, Python backend (port 8100) handles recipe scraping via Gemini AI, product matching, and Storage CRUD.
-
-- `/api/storage/*` → Storage API
-- `/api/scraper/*` → Scraper addon
-- `/api/backend/*` → Python backend (localhost:8100)
-- `/api/storage-files/*` → Storage file server (recipe images)
-
-Frontend: React 18 + Vite + Tailwind CSS. Single main component in `App.jsx`. Dark mode.
-
-## Key Conventions
-
-### Duplicated files — keep them in sync
-
-The `grocy_scraper/` Python package is **copied identically** into `grocy_scraper_addon/grocy_scraper/`. Any change to `scraper.py`, `storage_client.py`, or `skaupat_client.py` must be applied to both locations.
-
-There is only **one** `main.py` — at `grocy_scraper_addon/main.py`.
-
-### Gemini AI integration
-
-All Gemini API calls go through `_call_gemini()` → `_call_gemini_json()` in `grocy_scraper_addon/main.py`. The JSON wrapper retries up to `_GEMINI_MAX_RETRIES` times with exponential back-off and sanitizes control characters from responses. Batch sizes: 100 for sort/date/group, 1000 for optimize. The AI key is stored centrally in Storage.
-
-### Error handling
-
-- `GrocyAPIError` is the standard exception for Storage and Gemini API failures (defined in `storage_client.py`, re-used in `grocy_scraper_addon/main.py`).
-- API clients log warnings and continue on non-fatal errors; batch operations skip failed batches rather than aborting.
-
-### Retry logic
-
-All apps retry connecting to Storage on startup to handle startup order gracefully:
-- Scraper: 30 retries × 5s intervals
-- Stock / Recipe: health-check loops until Storage responds
-
-### Version bumps
-
-**Always bump the version** when making user-facing changes. When prompting from the root `HA-apps/` folder, remember that version files live **inside the submodules**. All version locations must be bumped together per submodule.
-
-**grocy_scraper** — bump all three:
-
-| File (relative to `grocy_scraper/`) | Field |
-|---|---|
-| `grocy_scraper_addon/config.yaml` | `version: "X.Y.Z"` |
-| `custom_components/grocy_scraper/manifest.json` | `"version": "X.Y.Z"` |
-| `grocy_scraper_addon/CHANGELOG.md` | New `## X.Y.Z` section |
-
-**HA-grocy-stock** — bump both:
-
-| File (relative to `HA-grocy-stock/`) | Field |
-|---|---|
-| `grocy_stock/config.json` | `"version": "X.Y.Z"` |
-| `grocy_stock/CHANGELOG.md` | New `## X.Y.Z` section |
-
-**HA-grocy-recipes** — bump both:
-
-| File (relative to `HA-grocy-recipes/`) | Field |
-|---|---|
-| `grocy_recipes/config.json` | `"version": "X.Y.Z"` |
-| `grocy_recipes/CHANGELOG.md` | New `## X.Y.Z` section |
-
-**HA-storage** — bump both:
-
-| File (relative to `HA-storage/`) | Field |
-|---|---|
-| `storage/config.json` | `"version": "X.Y.Z"` |
-| `storage/CHANGELOG.md` | New `## X.Y.Z` section |
-
-CHANGELOGs use plain `## VERSION` headers (e.g. `## 1.11.0`). Do **not** use brackets or dates (`## [1.11.0] - 2026-04-06`) — HA Supervisor cannot parse that format.
-
-### Home Assistant patterns
-
-- All four addons use **HA ingress** on port 8099 with automatic path injection.
-- API keys are injected **server-side** (nginx headers or Python code) — never exposed to the browser.
-- Add-on services use **s6-overlay** (`rootfs/etc/s6-overlay/s6-rc.d/`).
-- Product names and UI strings are in **Finnish** (the target grocery sites are Finnish).
-- All four apps follow the same patterns: React + Vite + Tailwind frontends, dark mode, ingress-aware URLs, server-side API key injection.
-
-### Testing style
-
-Tests use `unittest.mock.patch` extensively. Test classes are grouped by function/method (e.g., `TestGetAllProducts`, `TestAiOptimize`). Mocks patch at the module boundary — typically `requests.Session` or `requests.post`.
+- Read the local submodule instructions too. Each major submodule has its own `.github/copilot-instructions.md`, and those files contain app-specific details that the root file intentionally does not repeat in full.
+- Submodule workflow matters: commit and push inside the changed submodule first, then commit the updated submodule pointer in the root repo. `.gitmodules` must stay on HTTPS for Home Assistant Supervisor compatibility even if local push remotes use SSH.
+- Every user-facing change requires a version bump and changelog entry in the touched submodule:
+  - `grocy_scraper/`: `grocy_scraper_addon/config.yaml`, `custom_components/grocy_scraper/manifest.json`, `grocy_scraper_addon/CHANGELOG.md`
+  - `HA-storage/`: `storage/config.json`, `storage/CHANGELOG.md`
+  - `HA-grocy-stock/`: `grocy_stock/config.json`, `grocy_stock/CHANGELOG.md`
+  - `HA-grocy-recipes/`: `grocy_recipes/config.json`, `grocy_recipes/CHANGELOG.md`
+- Changelogs use plain `## X.Y.Z` headers only. Do not use bracketed versions or dates; Home Assistant Supervisor parsing depends on the simpler format.
+- The scraper package is duplicated on purpose: `grocy_scraper/grocy_scraper/` is copied into `grocy_scraper/grocy_scraper_addon/grocy_scraper/`. When changing shared scraper modules such as `scraper.py`, `storage_client.py`, `skaupat_client.py`, or `searxng_client.py`, keep both copies in sync. The only `main.py` that matters for the add-on flow is `grocy_scraper_addon/main.py`.
+- Storage is the canonical data model. Use Storage terminology and field names (`parent_id`, `unit_id`, `picture_filename`, `active`) instead of old Grocy names when touching integrations, API clients, or migration logic.
+- All four add-ons are ingress-aware Home Assistant apps. API keys stay server-side, nginx injects the ingress path into the frontend, and browser code should talk to proxied relative API routes instead of hard-coded host URLs.
+- Product data is Finnish-first across the suite. Recipe input can be multilingual, but matching and stored product names are expected to resolve to Finnish Storage products.
