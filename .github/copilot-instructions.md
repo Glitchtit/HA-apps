@@ -84,7 +84,7 @@ No linter or formatter is configured.
 - `HA-grocy-recipes/` is split between a React SPA and a Python backend behind nginx. nginx proxies `/api/storage/*`, `/api/scraper/*`, `/api/backend/*`, and `/api/storage-files/*`. The backend supports Gemini, Claude, and Ollama, exposes provider-aware `/api/config` readiness, scrapes recipe pages, extracts structured recipe data, and matches ingredients against Storage products.
 - `HA-chores/` ships both a Supervisor add-on (`chores/`) with FastAPI backend + React frontend on `ingress_port: 8099`, and a HA custom integration (`custom_components/ha_chores/`) that creates sensors, todo lists, and calendar entities by polling the add-on API.
 - Startup order is intentionally loose because Home Assistant may bring services up in different sequences. Storage is expected to come up first, while Scraper and the Recipe backend block on Storage health at startup and the Stock/Recipe frontends poll Storage health with bounded retry loops before enabling their main UI flows.
-- `Design system/` and `docs/` at the root are not shipped — they hold cross-frontend design tokens/mocks and workflow notes respectively.
+- `Design system/project/` is the **GlitchyRee Design System** — a formal design language for all four frontends. It is not shipped; read it when implementing or reviewing UI changes. `docs/` holds workflow notes.
 
 ## Key conventions
 
@@ -101,3 +101,17 @@ No linter or formatter is configured.
 - Storage is the canonical data model. Use Storage terminology and field names (`parent_id`, `unit_id`, `picture_filename`, `active`) instead of old Grocy names when touching integrations, API clients, or migration logic.
 - All four add-ons are ingress-aware Home Assistant apps. API keys stay server-side, nginx injects the ingress path into the frontend, and browser code should talk to proxied relative API routes instead of hard-coded host URLs.
 - Product data is Finnish-first across the suite. Recipe input can be multilingual, but matching and stored product names are expected to resolve to Finnish Storage products.
+
+## Design system
+
+The `Design system/project/` folder contains the **GlitchyRee Design System** — read `README.md` and `codebase_notes.md` there before making any non-trivial UI change. Per-app hi-fi prototypes live in `ui_kits/{storage,stock,recipes,chores}/`. The CSS token file is `colors_and_type.css`.
+
+**Visual rules that apply to all four frontends:**
+- **Dark-first, no light mode.** Root: `bg-gray-900` (`#111827`). Surface ladder: `bg-gray-900` → `bg-gray-800` (cards) → `bg-gray-700` (hover) → `bg-gray-600` (divider). Overlays: `bg-black/60 backdrop-blur-sm`. Sticky headers: `bg-gray-900/90 backdrop-blur-md border-b border-gray-800`.
+- **Brand palette (re-themed).** International Orange `#FF4F00` for attention/accent; Cobalt Blue `#0047AB` for primary actions. These replace the emerald accent the source apps currently use.
+- **Semantic palette (keep as-is).** Emerald (`#10B981`) = success/keep. Amber (`#F59E0B`) = warning/opened/XP. Red (`#EF4444`) = danger/consume/delete. Tinted cells always use `bg-{color}-900/40 text-{color}-300`.
+- **Emoji is the icon system.** No icon font, no Lucide in production. Every tab/section has an emoji glyph (🗄️ 📦 🍽️ 🧹). Status: ✅ ⚠️ ❌. Toasts: ✅ ⚠️ ❌ 💡 🔄. Unicode glyphs (`▾ ✕ ↓`) for chevrons/close.
+- **Radii.** `rounded-lg` (chips/inputs), `rounded-xl` (buttons/cards), `rounded-2xl` (overlays/hero cards), `rounded-full` (avatars/pills).
+- **No Tailwind custom tokens.** All production code uses raw Tailwind utility classes — there is no `tailwind.config.js` extension.
+- **Copy voice.** Sentence case, imperative buttons (`Consume all`, `Keep in stock`, `Lisää ostoslistalle`), Finnish/English mixed freely, no marketing copy, no "Welcome!" or "Let's get started".
+- **Animations.** Chores has heavy keyframe animation (`index.css`). All other apps: `transition-colors` on buttons, `active:scale-[0.98]` on cards, `overlay-fade-in` (0.2s) on dialogs. Do not add celebration-style animations outside Chores.

@@ -13,7 +13,9 @@ Submodules:
 - `grocy_scraper/` — Python scraper shipped as both a Supervisor add-on (`grocy_scraper_addon/`) and a HA custom integration (`custom_components/grocy_scraper/`).
 - `HA-grocy-stock/grocy_stock` — React SPA behind nginx.
 - `HA-grocy-recipes/grocy_recipes` — React SPA + Python backend (Gemini/Claude/Ollama) behind nginx.
-- `HA-chores/chores` — FastAPI + React (`ingress_port: 8099`) with a paired `custom_components/ha_chores` integration (sensors, todo, calendar).
+- `HA-chores/chores` — FastAPI + React (`ingress_port: 8099`). Like `grocy_scraper/`, this submodule ships add-on **and** integration side-by-side: the integration lives at the submodule root in `HA-chores/custom_components/ha_chores/` (sensors, todo, calendar), parallel to `HA-chores/chores/`.
+
+Top-level folders that are **not** shipped: `Design system/` holds cross-frontend design tokens/mocks; `docs/` holds workflow notes.
 
 ## Commands
 
@@ -23,6 +25,8 @@ Run inside the relevant submodule. No linter/formatter is configured anywhere.
 # grocy_scraper (Python)
 cd grocy_scraper && python -m pytest tests/ -v
 cd grocy_scraper && python -m pytest tests/test_main.py::TestAiOptimize::test_optimize_updates_location -v
+# Tests only import the top-level `grocy_scraper/grocy_scraper/` copy — drift between
+# it and `grocy_scraper_addon/grocy_scraper/` will NOT surface here. Inspect both on change.
 
 # HA-storage backend
 cd HA-storage/storage && python -m pytest app/tests/ -v
@@ -48,11 +52,24 @@ cd HA-chores/chores/frontend && npm install && npm run dev
 - **Recipe backend** proxies `/api/storage/*`, `/api/scraper/*`, `/api/backend/*`, `/api/storage-files/*` via nginx; exposes provider-aware `/api/config` readiness; scrapes recipe pages; matches ingredients against Storage.
 - **Startup order is loose.** Storage comes up first; scraper and recipe backend block on Storage health at startup; Stock/Recipe frontends poll Storage health with bounded retry before enabling UI flows. Do not assume any service is ready — add retry.
 - **All add-ons are ingress-aware.** API keys stay server-side, nginx injects the ingress path into the frontend, and browser code must call proxied relative API routes — never hard-coded hosts.
-- **Finnish-first product data.** Recipe input can be multilingual, but matching and stored product names resolve to Finnish Storage products.
+- **Finnish-first product data.** Storage product names are stored in Finnish. User-facing UI and recipe input can be any language; matching happens after translation and resolves to the Finnish canonical product.
+
+## Design system
+
+`Design system/project/` contains the **GlitchyRee Design System** — read `README.md` and `codebase_notes.md` there before any non-trivial UI work. Per-app hi-fi prototypes in `ui_kits/{storage,stock,recipes,chores}/`; CSS tokens in `colors_and_type.css`.
+
+Key rules for all four frontends:
+- **Dark-first, no light mode.** Root `bg-gray-900`. Surface ladder: `bg-gray-900` → `bg-gray-800` (cards) → `bg-gray-700` (hover). Overlays: `bg-black/60 backdrop-blur-sm`. Sticky headers: `bg-gray-900/90 backdrop-blur-md border-b border-gray-800`.
+- **Brand palette (re-themed).** International Orange `#FF4F00` for accent; Cobalt Blue `#0047AB` for primary actions. These replace the emerald accent in existing code.
+- **Semantic palette (unchanged).** Emerald = success, Amber = warning/XP, Red = danger. Tinted cells: `bg-{color}-900/40 text-{color}-300`.
+- **Emoji is the icon system.** No icon font in production. Tabs/sections use emoji (🗄️ 📦 🍽️ 🧹). Chevrons/close use Unicode glyphs (`▾ ✕`).
+- **Radii.** `rounded-lg` chips/inputs, `rounded-xl` buttons/cards, `rounded-2xl` overlays, `rounded-full` avatars.
+- **No Tailwind custom tokens.** Raw utility classes only — no `tailwind.config.js` extension.
+- **Copy voice.** Sentence case, imperative buttons, Finnish/English mixed, no marketing copy.
 
 ## Conventions that bite
 
-- **Each submodule has its own `.github/copilot-instructions.md`** with app-specific details. Read it before working in that submodule; the root file intentionally does not duplicate.
+- **Each submodule has its own `.github/copilot-instructions.md`** with app-specific details. Read it before working in that submodule; the root file intentionally does not duplicate. `HA-grocy-stock/` additionally ships an `AGENTS.md` at its submodule root — read that too when touching Stock.
 - **Submodule workflow:** commit and push inside the submodule *first*, then commit the updated pointer in the root repo. `.gitmodules` must stay on HTTPS for Supervisor compatibility even if local push remotes use SSH.
 - **Every user-facing change requires a version bump and changelog entry** in the touched submodule. Bump + rebuild after any add-on fix without waiting to be asked.
   - `grocy_scraper/`: `grocy_scraper_addon/config.yaml`, `custom_components/grocy_scraper/manifest.json`, `grocy_scraper_addon/CHANGELOG.md`
