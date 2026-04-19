@@ -13,3 +13,6 @@
 [submodule "HA-chores"]
 	path = HA-chores
 	url = https://github.com/Glitchtit/HA-chores.git
+[submodule "HA-lists"]
+	path = HA-lists
+	url = https://github.com/Glitchtit/HA-lists.git
