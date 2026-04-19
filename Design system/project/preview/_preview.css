@@ -1,0 +1,103 @@
+/* Preview cards — shared base.
+   Cards are 700×variable, rendered on dark bg. Import colors_and_type.css first. */
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  background: var(--bg-1);
+  color: var(--fg-1);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  padding: 24px;
+  min-height: 100vh;
+}
+
+.card {
+  background: var(--bg-1);
+  color: var(--fg-1);
+  font-family: var(--font-body);
+  width: 100%;
+}
+
+.row { display: flex; }
+.col { display: flex; flex-direction: column; }
+.gap-1 { gap: 4px; } .gap-2 { gap: 8px; } .gap-3 { gap: 12px; } .gap-4 { gap: 16px; } .gap-6 { gap: 24px; }
+
+.mono { font-family: var(--font-mono); font-size: 11px; color: var(--fg-3); }
+.label { font-family: var(--font-display); font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--fg-3); }
+
+.swatch {
+  height: 72px;
+  border-radius: 12px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+  padding: 10px;
+  position: relative;
+  overflow: hidden;
+}
+.swatch .hex {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 6px;
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 4px;
+  color: #fff;
+  backdrop-filter: blur(6px);
+}
+.swatch.on-light .hex { background: rgba(255, 255, 255, 0.7); color: #111; }
+
+.chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Brand button presets (used inside component cards) */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 12px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  transition: background-color var(--dur-base) var(--ease-out), transform var(--dur-fast) var(--ease-out);
+}
+.btn.brand-cobalt { background: var(--brand-cobalt); }
+.btn.brand-cobalt:hover { background: var(--brand-cobalt-400); }
+.btn.brand-cobalt:active { background: var(--brand-cobalt-600); }
+.btn.brand-orange { background: var(--brand-orange); }
+.btn.brand-orange:hover { background: var(--brand-orange-400); }
+.btn.brand-orange:active { background: var(--brand-orange-600); }
+.btn.success { background: var(--success); }
+.btn.danger { background: var(--danger); }
+.btn.warning { background: var(--warning); }
+.btn.ghost { background: transparent; color: var(--fg-2); }
+.btn.ghost:hover { background: var(--bg-3); color: var(--fg-1); }
+.btn.neutral { background: var(--bg-3); color: var(--fg-1); }
+.btn.neutral:hover { background: var(--bg-4); }
+
+/* Input */
+.field {
+  padding: 10px 14px;
+  background: var(--bg-2);
+  border: 1px solid var(--line-1);
+  border-radius: 12px;
+  color: var(--fg-1);
+  font-family: var(--font-body);
+  font-size: 14px;
+  outline: none;
+  transition: border-color var(--dur-base), box-shadow var(--dur-base);
+}
+.field:focus { border-color: var(--brand-cobalt-400); box-shadow: 0 0 0 2px rgba(46,107,214,0.35); }
+.field::placeholder { color: var(--fg-4); }

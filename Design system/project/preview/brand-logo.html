@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<link rel="stylesheet" href="_preview.css">
+<title>Brand — Logo</title>
+</head>
+<body>
+<div class="card">
+  <div class="col gap-3">
+    <div class="label">Logo mark — split orange / cobalt</div>
+    <div class="row gap-4" style="align-items: center; padding: 16px; background: var(--bg-2); border-radius: 16px;">
+      <!-- Mark: 50/50 diagonal split between International Orange and Cobalt Blue -->
+      <div style="width: 88px; height: 88px; border-radius: 20px; overflow: hidden; position: relative; box-shadow: 0 0 28px rgba(255,79,0,0.25), 0 0 28px rgba(46,107,214,0.25);">
+        <div style="position: absolute; inset: 0; background: var(--brand-cobalt);"></div>
+        <div style="position: absolute; inset: 0; background: var(--brand-orange); clip-path: polygon(0 0, 100% 0, 0 100%);"></div>
+        <!-- R glyph, white, centered, drawn on top -->
+        <div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;">
+          <span style="font-family: var(--font-display); font-weight: 700; font-size: 52px; color: #fff; letter-spacing: -0.04em; transform: translateY(-2px); text-shadow: 0 1px 0 rgba(0,0,0,0.15);">R</span>
+        </div>
+        <!-- Diagonal seam highlight -->
+        <div style="position: absolute; top: 0; right: 0; width: 150%; height: 2px; background: rgba(255,255,255,0.18); transform-origin: top right; transform: rotate(135deg);"></div>
+      </div>
+
+      <div class="col gap-1">
+        <div style="font-family: var(--font-display); font-weight: 700; font-size: 28px; letter-spacing: -0.02em;">
+          <span style="color: var(--brand-orange);">Glitchy</span><span style="color: var(--brand-cobalt-300);">Ree</span>
+        </div>
+        <div style="color: var(--fg-3); font-size: 13px;">Home Assistant add-ons · Storage · Stock · Recipe · Chores</div>
+      </div>
+    </div>
+
+    <!-- Mark variants: 50/50 in three treatments -->
+    <div class="row gap-2" style="align-items: center;">
+      <div style="width: 44px; height: 44px; border-radius: 10px; overflow: hidden; position: relative;">
+        <div style="position: absolute; inset: 0; background: var(--brand-cobalt);"></div>
+        <div style="position: absolute; inset: 0; background: var(--brand-orange); clip-path: polygon(0 0, 100% 0, 0 100%);"></div>
+        <div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #fff; font-family: var(--font-display); font-weight: 700; font-size: 24px; letter-spacing: -0.04em;">R</div>
+      </div>
+      <div style="width: 44px; height: 44px; border-radius: 10px; overflow: hidden; position: relative;">
+        <div style="position: absolute; inset: 0; background: var(--brand-orange);"></div>
+        <div style="position: absolute; inset: 0; background: var(--brand-cobalt); clip-path: polygon(100% 0, 100% 100%, 0 100%);"></div>
+        <div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #fff; font-family: var(--font-display); font-weight: 700; font-size: 24px; letter-spacing: -0.04em;">R</div>
+      </div>
+      <div style="width: 44px; height: 44px; border-radius: 10px; position: relative; overflow: hidden; background: var(--bg-2); border: 1px solid var(--line-1);">
+        <div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-weight: 700; font-size: 24px; letter-spacing: -0.04em;">
+          <span style="color: var(--brand-orange);">R</span><span style="color: var(--brand-cobalt-300); margin-left: -2px;">e</span>
+        </div>
+      </div>
+      <div class="ds-caption" style="margin-left: 6px;">Small marks — diagonal split, inverted split, mono on neutral.</div>
+    </div>
+
+    <div class="ds-caption">Placeholder — replace with official assets in <code>assets/</code> when available. Colour split is 50/50 by area.</div>
+  </div>
+</div>
+</body>
+</html>
