@@ -14,6 +14,7 @@ Submodules:
 - `HA-grocy-stock/grocy_stock` — React SPA behind nginx.
 - `HA-grocy-recipes/grocy_recipes` — React SPA + Python backend (Gemini/Claude/Ollama) behind nginx.
 - `HA-chores/chores` — FastAPI + React (`ingress_port: 8099`). Like `grocy_scraper/`, this submodule ships add-on **and** integration side-by-side: the integration lives at the submodule root in `HA-chores/custom_components/ha_chores/` (sensors, todo, calendar), parallel to `HA-chores/chores/`.
+- `HA-lists/lists` — FastAPI + React (`ingress_port: 8099`). Goblin-Tools-style task manager: Folder → List → Item → Subtask hierarchy, spiciness-based AI breakdown (planned), household assignment. **Add-on only** — no custom integration.
 
 Top-level folders that are **not** shipped: `Design system/` holds cross-frontend design tokens/mocks; `docs/` holds workflow notes.
 
@@ -43,6 +44,10 @@ cd HA-grocy-recipes/grocy_recipes/frontend && npm install && npm run dev
 # HA-chores
 cd HA-chores/chores/app && python -m pytest tests/ -v
 cd HA-chores/chores/frontend && npm install && npm run dev
+
+# HA-lists
+cd HA-lists/lists/app && python -m pytest tests/ -v
+cd HA-lists/lists/frontend && npm install && npm run dev
 ```
 
 ## Architecture (big picture)
@@ -77,6 +82,7 @@ Key rules for all four frontends:
   - `HA-grocy-stock/`: `grocy_stock/config.json`, `grocy_stock/CHANGELOG.md`
   - `HA-grocy-recipes/`: `grocy_recipes/config.json`, `grocy_recipes/CHANGELOG.md`
   - `HA-chores/`: `chores/config.json`, `chores/CHANGELOG.md`
+  - `HA-lists/`: `lists/config.json`, `lists/CHANGELOG.md`
 - **Changelogs use plain `## X.Y.Z` headers only.** No bracketed versions, no dates — Supervisor parsing depends on this.
 - **Scraper package is duplicated on purpose:** `grocy_scraper/grocy_scraper/` is copied into `grocy_scraper/grocy_scraper_addon/grocy_scraper/`. When changing shared modules (`scraper.py`, `storage_client.py`, `skaupat_client.py`, `searxng_client.py`), keep both copies in sync. The add-on flow uses `grocy_scraper_addon/main.py`.
 - **Use Storage terminology** (`parent_id`, `unit_id`, `picture_filename`, `active`) — not legacy Grocy names — when touching integrations, API clients, or migration logic.

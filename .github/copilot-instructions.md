@@ -59,6 +59,22 @@ npm run build
 
 No tests or linter are configured for Recipe. The Python backend currently has no dedicated automated test suite in this repo.
 
+### `HA-lists/lists/` (FastAPI + React add-on)
+
+```bash
+cd HA-lists/lists/app
+python -m pytest tests/ -v
+python -m pytest tests/test_api.py::TestItems -v
+python -m pytest tests/test_api.py::TestHealth::test_health_returns_ok -v
+
+cd HA-lists/lists/frontend
+npm install
+npm run dev
+npm run build
+```
+
+No linter or formatter is configured.
+
 ### `HA-chores/chores/` (FastAPI + React add-on + HA integration)
 
 ```bash
@@ -83,6 +99,7 @@ No linter or formatter is configured.
 - `HA-grocy-stock/` is a React SPA served by nginx. It does not own business data; it proxies `/api/storage/*` to Storage and `/api/scraper/*` to the scraper add-on and keeps most frontend behavior in a single `frontend/src/App.jsx`.
 - `HA-grocy-recipes/` is split between a React SPA and a Python backend behind nginx. nginx proxies `/api/storage/*`, `/api/scraper/*`, `/api/backend/*`, and `/api/storage-files/*`. The backend supports Gemini, Claude, and Ollama, exposes provider-aware `/api/config` readiness, scrapes recipe pages, extracts structured recipe data, and matches ingredients against Storage products.
 - `HA-chores/` ships both a Supervisor add-on (`chores/`) with FastAPI backend + React frontend on `ingress_port: 8099`, and a HA custom integration (`custom_components/ha_chores/`) that creates sensors, todo lists, and calendar entities by polling the add-on API.
+- `HA-lists/` is a Goblin-Tools-style task manager add-on. Folders → Lists → Items → Subtasks, with spiciness-driven AI breakdown (planned), household assignment synced from HA, and time estimates. **Add-on only** — no custom integration.
 - Startup order is intentionally loose because Home Assistant may bring services up in different sequences. Storage is expected to come up first, while Scraper and the Recipe backend block on Storage health at startup and the Stock/Recipe frontends poll Storage health with bounded retry loops before enabling their main UI flows.
 - `Design system/project/` is the **GlitchyRee Design System** — a formal design language for all four frontends. It is not shipped; read it when implementing or reviewing UI changes. `docs/` holds workflow notes.
 
@@ -96,6 +113,7 @@ No linter or formatter is configured.
   - `HA-grocy-stock/`: `grocy_stock/config.json`, `grocy_stock/CHANGELOG.md`
   - `HA-grocy-recipes/`: `grocy_recipes/config.json`, `grocy_recipes/CHANGELOG.md`
   - `HA-chores/`: `chores/config.json`, `chores/CHANGELOG.md`
+  - `HA-lists/`: `lists/config.json`, `lists/CHANGELOG.md`
 - Changelogs use plain `## X.Y.Z` headers only. Do not use bracketed versions or dates; Home Assistant Supervisor parsing depends on the simpler format.
 - The scraper package is duplicated on purpose: `grocy_scraper/grocy_scraper/` is copied into `grocy_scraper/grocy_scraper_addon/grocy_scraper/`. When changing shared scraper modules such as `scraper.py`, `storage_client.py`, `skaupat_client.py`, or `searxng_client.py`, keep both copies in sync. The only `main.py` that matters for the add-on flow is `grocy_scraper_addon/main.py`.
 - Storage is the canonical data model. Use Storage terminology and field names (`parent_id`, `unit_id`, `picture_filename`, `active`) instead of old Grocy names when touching integrations, API clients, or migration logic.
