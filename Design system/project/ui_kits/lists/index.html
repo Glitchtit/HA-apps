@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Lists — UI Kit</title>
+<link rel="stylesheet" href="../../colors_and_type.css">
+<link rel="stylesheet" href="../../preview/_preview.css">
+<style>
+  html, body { background: #05070b; height: 100%; }
+  body { padding: 0; display: flex; align-items: center; justify-content: center; }
+  .desktop {
+    width: 1200px; height: 780px; background: var(--bg-1);
+    border-radius: 20px; overflow: hidden; position: relative;
+    box-shadow: 0 40px 80px rgba(0,0,0,0.6), 0 0 0 8px #15181f, 0 0 0 10px #272a33;
+  }
+  @keyframes slide-up { from { transform: translateY(10px); opacity: 0 } to { transform: translateY(0); opacity: 1 } }
+  @keyframes ai-shimmer { 0% { background-position: -200% 0 } 100% { background-position: 200% 0 } }
+  .ai-running::before {
+    content: ''; position: absolute; inset: 0; pointer-events: none;
+    background: linear-gradient(90deg, transparent 0%, rgba(255,122,61,0.18) 50%, transparent 100%);
+    background-size: 200% 100%; animation: ai-shimmer 2s linear infinite;
+  }
+  /* Spiciness slider */
+  input[type="range"].spice { -webkit-appearance: none; appearance: none; height: 6px; border-radius: 999px;
+    background: linear-gradient(90deg, var(--brand-orange), #FBBF24); outline: none; }
+  input[type="range"].spice::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px;
+    border-radius: 50%; background: var(--brand-orange); border: 2px solid var(--fg-1);
+    box-shadow: var(--glow-orange); cursor: pointer; }
+  input[type="range"].spice::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%;
+    background: var(--brand-orange); border: 2px solid var(--fg-1);
+    box-shadow: var(--glow-orange); cursor: pointer; }
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+<div class="desktop"><div id="root" style="height:100%"></div></div>
+<script type="text/babel" src="App.jsx"></script>
+<script type="text/babel">
+  const App = window.ListsApp;
+  ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

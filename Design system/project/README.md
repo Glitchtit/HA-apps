@@ -203,5 +203,6 @@ Each kit is a standalone hi-fi prototype of one product, rooted in the real comp
 - `ui_kits/chores/index.html` — the chores dashboard. Bottom nav → sidebar rail, chore list, XP bar, pet.
 - `ui_kits/recipes/index.html` — recipe grid + paste‑URL composer + detail overlay.
 - `ui_kits/storage/index.html` — admin tabs + dashboard table.
+- `ui_kits/lists/index.html` — Goblin-Tools-style folders→lists→items, spiciness slider, AI actions row, compile dialog, AI job toast.
 
 Each kit has its own `README.md` and a small set of JSX components. None of them are production code — they're visual fidelity at the cost of wiring.
