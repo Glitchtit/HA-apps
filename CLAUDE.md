@@ -9,12 +9,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Clone with submodules: `git clone --recurse-submodules …` or `git submodule update --init --recursive`. Update to latest: `git submodule update --remote --merge`.
 
 Submodules:
-- `HA-storage/storage` — FastAPI + SQLite, nginx on `8099`, FastAPI on `8100`, DB at `/data/storage.db`. **System of record.**
+- `HA-storage/storage` — FastAPI + SQLite, nginx on `8099`, FastAPI on `8100`, DB at `/data/storage.db`. **System of record.** Ships add-on **and** HACS integration side-by-side: the integration lives at the submodule root in `HA-storage/custom_components/ha_storage/` (sensors, todo, services), parallel to `HA-storage/storage/`.
 - `grocy_scraper/` — Python scraper shipped as both a Supervisor add-on (`grocy_scraper_addon/`) and a HA custom integration (`custom_components/grocy_scraper/`).
 - `HA-grocy-stock/grocy_stock` — React SPA behind nginx.
 - `HA-grocy-recipes/grocy_recipes` — React SPA + Python backend (Gemini/Claude/Ollama) behind nginx.
 - `HA-chores/chores` — FastAPI + React (`ingress_port: 8099`). Like `grocy_scraper/`, this submodule ships add-on **and** integration side-by-side: the integration lives at the submodule root in `HA-chores/custom_components/ha_chores/` (sensors, todo, calendar), parallel to `HA-chores/chores/`.
-- `HA-lists/lists` — FastAPI + React (`ingress_port: 8099`). Goblin-Tools-style task manager: Folder → List → Item → Subtask hierarchy, spiciness-based AI breakdown (planned), household assignment. **Add-on only** — no custom integration.
+- `HA-lists/lists` — FastAPI + React (`ingress_port: 8099`). Goblin-Tools-style task manager: Folder → List → Item → Subtask hierarchy, spiciness-based AI breakdown (planned), household assignment. Ships add-on **and** HACS integration at `HA-lists/custom_components/ha_lists/`.
 
 Top-level folders that are **not** shipped: `Design system/` holds cross-frontend design tokens/mocks; `docs/` holds workflow notes.
 
@@ -78,7 +78,7 @@ Key rules for all four frontends:
 - **Submodule workflow:** commit and push inside the submodule *first*, then commit the updated pointer in the root repo. `.gitmodules` must stay on HTTPS for Supervisor compatibility even if local push remotes use SSH.
 - **Every user-facing change requires a version bump and changelog entry** in the touched submodule. Bump + rebuild after any add-on fix without waiting to be asked.
   - `grocy_scraper/`: `grocy_scraper_addon/config.yaml`, `custom_components/grocy_scraper/manifest.json`, `grocy_scraper_addon/CHANGELOG.md`
-  - `HA-storage/`: `storage/config.json`, `storage/CHANGELOG.md`
+  - `HA-storage/`: `storage/config.json`, `storage/CHANGELOG.md`, `custom_components/ha_storage/manifest.json`
   - `HA-grocy-stock/`: `grocy_stock/config.json`, `grocy_stock/CHANGELOG.md`
   - `HA-grocy-recipes/`: `grocy_recipes/config.json`, `grocy_recipes/CHANGELOG.md`
   - `HA-chores/`: `chores/config.json`, `chores/CHANGELOG.md`
