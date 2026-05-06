@@ -133,3 +133,60 @@ The `Design system/project/` folder contains the **GlitchyRee Design System** �
 - **No Tailwind custom tokens.** All production code uses raw Tailwind utility classes — there is no `tailwind.config.js` extension.
 - **Copy voice.** Sentence case, imperative buttons (`Consume all`, `Keep in stock`, `Lisää ostoslistalle`), Finnish/English mixed freely, no marketing copy, no "Welcome!" or "Let's get started".
 - **Animations.** Chores has heavy keyframe animation (`index.css`). All other apps: `transition-colors` on buttons, `active:scale-[0.98]` on cards, `overlay-fade-in` (0.2s) on dialogs. Do not add celebration-style animations outside Chores.
+
+## Workflow Orchestration
+
+### 1. Plan Mode Default
+- Enter plan mode for ANY non-trivial task (3+ steps or architectural decisions)
+- If something goes sideways, **STOP** and re-plan immediately
+- Use plan mode for verification steps, not just building
+- Write detailed specs upfront to reduce ambiguity
+
+### 2. Subagent Strategy
+- Use subagents liberally to keep main context window clean
+- Offload research, exploration, and parallel analysis to subagents
+- For complex problems, throw more compute at it via subagents
+- One task per subagent for focused execution
+
+### 3. Self-Improvement Loop
+- After ANY correction from the user: capture the pattern learned
+- Ruthlessly iterate on these lessons until mistake rate drops
+- Review lessons at session start for relevant project
+
+### 4. Verification Before Done
+- Never mark a task complete without proving it works
+- Diff between main and your changes when relevant
+- Ask yourself: "Would a staff engineer accept this?"
+- Run tests, check logs, demonstrate correctness
+
+### 5. Demand Elegance (Balanced)
+- For non-trivial changes: pause and ask "Is there a more elegant way?"
+- Prefer fewer, well-factored changes over scattered fixes
+- Skip this for simple, obvious fixes — don't over-engineer
+- If it feels hacky: "Knowing everything I know, does the design solution?"
+
+### 6. Autonomous Bug Fixing
+- When a bug report: just fix it. Don't hand-hold.
+- Point at logs, errors, failing tests — then resolve them
+- Go fix failing CI tests without being told how
+
+## Task Management
+
+### 1. Plan First
+- Create a plan in plan.md with checkable todos before starting
+- Verify plan with user when behavioral choices are ambiguous
+
+### 2. Track Progress
+- Mark todos complete as you go
+- Report high-level summary at each step
+- Explain changes: high-level summary + detailed subsections
+
+### 3. Document Results
+- Add results and verification to plan.md (what changed, how it was tested)
+- Capture lessons: document any corrections or insights gained
+
+## Core Principles
+
+- **Simplicity First.** Make every change as simple as possible. Minimal impact code.
+- **No Laziness.** Find root causes. No temporary fixes. Senior developer standards.
+- **Minimal Impact.** Avoid introducing bugs. Changes should only touch what's necessary.
