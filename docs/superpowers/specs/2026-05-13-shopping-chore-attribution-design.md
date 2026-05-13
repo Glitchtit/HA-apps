@@ -45,50 +45,80 @@ item was scanned):
 
 ## 4. Architecture
 
+HA-grocy-stock is a **pure nginx + React** add-on (no Python backend). It
+already proxies `/api/storage/` → HA-storage and `/api/scraper/` → scraper
+via nginx upstreams. We follow the same pattern and add a third upstream:
+`/api/chores/` → HA-chores' FastAPI (port 8100). The Stock frontend then
+calls the hook on a relative URL exactly like it does for Storage today.
+
 ```
-HA-grocy-stock frontend            HA-grocy-stock backend         HA-chores backend
-─────────────────────────          ─────────────────────────      ─────────────────────────
-Finish button (continuous          POST /shopping-session/        POST /api/shopping-hook/
-  scanner, mode='shopping',          finish                         complete
-  scanCount > 0)                     { shoppers: [...],             { chore_id, person,
-   │                                   scanners: [...],              suppress_followup,
-   ▼                                   scan_count }                  notes }
-ShoppingAttributionModal               │                            ─── for each (chore × person):
-  step 1: "Who did the shopping?"      ▼                            1. find/create today's instance
-  step 2: "Who did the scanning?"  chores_client.py                 2. apply_completion() — shared
-   │                                 (httpx → chores_base_url)        helper extracted from
-   ▼                                   │                              POST /assignments/{id}/complete
-  POST .../shopping-session/finish     ▼                            3. if suppress_followup: skip
-                                   for shopper in shoppers:           the followup-spawn block
-                                     hook(shopping_chore_id,        4. if leveled_up|new_badges|
-                                          shopper,                     powerup_earned: insert into
-                                          suppress=bool(scanners))     pending_celebrations
-                                   for scanner in scanners:
-                                     hook(scan_chore_id, scanner,
-                                          suppress=False)
+HA-grocy-stock frontend                   Stock nginx              HA-chores FastAPI
+─────────────────────────                 ─────────────────        ─────────────────────────
+Finish (continuous scanner,                                        POST /api/shopping-hook/complete
+  mode='shopping', scanCount > 0)                                    { chore_id, person,
+   │                                                                   suppress_followup, notes }
+   ▼                                                                 ↳ find/create today's instance
+ShoppingAttributionModal                                             ↳ apply_completion() (extracted
+   step 1: "Who did the shopping?"                                      helper, shared with
+   step 2: "Who did the scanning?"                                      POST /assignments/{id}/complete)
+   │                                                                 ↳ if suppress_followup:
+   │                                                                     skip followup spawn
+   ▼                                                                 ↳ if leveled_up|new_badges|
+   for shopper in shoppers:                                              powerup_earned:
+     POST /api/chores/shopping-hook/        proxy_pass                   INSERT pending_celebrations
+       complete { shopping_chore_id, ───→   ${CHORES_URL}/api/  ───→
+                  shopper,
+                  suppress_followup: bool(scanners) }
+   for scanner in scanners:
+     POST /api/chores/shopping-hook/
+       complete { scan_chore_id, scanner, suppress: false }
 
 HA-chores frontend on mount → GET /api/persons/me/pending-celebrations
                               → enqueue into modal queue
                               → POST .../ack with consumed ids
 ```
 
-The two add-ons are separate ingress services and cannot share a relative
-URL. HA-grocy-stock's backend talks to HA-chores' backend over the Supervisor
-internal docker network. The exact hostname Supervisor exposes depends on
-the install (commonly `http://local-ha_chores` or `http://<repo_id>_ha_chores`,
-or — if Chores declares a `ports` mapping — the host's IP). Stock add-on
-options expose `chores_base_url` (string, no default validation) so the user
-can set it once at install time. Chores' FastAPI process listens on
-**port 8100** internally (`main.py` `uvicorn.run(..., port=8100)`); nginx
-fronts that on port 8099 for ingress. The hook endpoint should be reachable
-on the FastAPI port directly — verify during implementation whether
-Supervisor routing allows that, otherwise expose the hook through nginx by
-adding a `location /api/shopping-hook/` block that proxies to FastAPI (the
-nginx template already proxies `/api/`, so the new route is covered).
+Cross-addon networking: Chores' FastAPI listens on **port 8100** internally
+(`main.py` `uvicorn.run(..., port=8100)`). For sibling add-ons to reach it,
+Chores' `config.json` declares `ports: {"8100/tcp": null}` (container-only
+exposure, no host port). Stock's add-on option `chores_url` (default
+`http://local_ha_chores:8100`) is exported as `CHORES_URL` and consumed by
+the nginx template at startup. The exact hostname can vary by Supervisor
+install — the user can override `chores_url` in add-on options.
+
+The two `/api/chores/` and `/api/chores/shopping-hook/` routes:
+`proxy_pass ${CHORES_URL}/api/` strips the `/api/chores/` prefix and replays
+the rest, so the browser request `POST /api/chores/shopping-hook/complete`
+becomes a backend `POST /api/shopping-hook/complete`.
 
 ## 5. Components
 
-### 5.1 Stock frontend
+### 5.1 Stock nginx + add-on config
+
+- **Modify** `HA-grocy-stock/grocy_stock/nginx.conf.template`: add a new
+  `location ^~ /api/chores/` block that `proxy_pass`es to `${CHORES_URL}/api/`,
+  modelled exactly on the existing `/api/storage/` block. Same headers, 30s
+  read timeout (single chore-completion calls are fast).
+
+- **Modify** `HA-grocy-stock/grocy_stock/config.json`:
+  - Add one option field `chores_url` (str, optional). When omitted, the
+    run script auto-detects the Chores add-on the same way it already
+    does for Storage/Scraper, then probes port 8100.
+  - Schema: `"chores_url": "str?"`.
+  - **No** chore-id fields here. The shopping and scan chore IDs are
+    stored in HA-chores' `config` table (single source of truth — see §5.4)
+    and fetched at runtime by the Stock frontend.
+
+- **Modify** `HA-grocy-stock/grocy_stock/rootfs/etc/cont-init.d/*` (or whichever
+  script generates the runtime nginx.conf from the template): export
+  `CHORES_URL` from `/data/options.json` so the nginx template substitution
+  picks it up.
+
+- **Modify** `HA-chores/chores/config.json` to declare
+  `"ports": {"8100/tcp": null}` so sibling add-ons can reach the FastAPI
+  port without exposing it to the host.
+
+### 5.2 Stock frontend
 
 - **Modify** `handleScannerClose({scanned})` in
   `HA-grocy-stock/grocy_stock/frontend/src/App.jsx` so that when
@@ -99,76 +129,29 @@ nginx template already proxies `/api/`, so the new route is covered).
 - **Add** `ShoppingAttributionModal` component (new file
   `HA-grocy-stock/grocy_stock/frontend/src/components/ShoppingAttributionModal.jsx`).
   - Two-step state machine (`step: 'shoppers' | 'scanners' | 'submitting'`).
-  - Persons fetched from `${API_BASE}/persons` (Stock proxies to Chores).
+  - Persons fetched on mount from `${INGRESS_PATH}/api/chores/persons/`.
   - Each step renders a list of person cards (avatar + name, tap to toggle
     selection), a "Skip this role" button, and "Next"/"Done".
-  - Cancel from step 1 aborts the whole flow (returns to scanner close as if
-    nothing happened). Cancel from step 2 preserves step 1's pick and
-    re-opens step 2.
-  - On Done: POST `${API_BASE}/shopping-session/finish` with
-    `{shoppers: [entity_id...], scanners: [entity_id...], scan_count}`.
-  - Toast on success summarising attributions. Toast on failure (see §6).
+  - Cancel from step 1 aborts the whole flow. Cancel from step 2 returns
+    to step 1.
+  - On Done: builds the fan-out plan, then for each `(chore_id, person)`
+    pair POSTs to `${INGRESS_PATH}/api/chores/shopping-hook/complete` with
+    `{chore_id, person, suppress_followup, notes: ""}`. Uses
+    `Promise.allSettled` so one failure doesn't block the others.
+  - Aggregates per-call results into a toast summary
+    ("Credited 2 shoppers, 1 scanner. Level-ups will appear in Chores.")
+  - Toast on partial / full failure (see §6).
 
-- **Add** chore-picker rows to the Stock settings panel (existing settings
-  modal already exists). Two dropdowns: "Shopping chore" and "Scan/unpack
-  chore", populated from `${API_BASE}/chores` (Stock proxies). Selection is
-  persisted in the Stock add-on options (round-trip via Supervisor
-  `/addons/self/options`).
+- **Add** the chore-id config UI to the *Chores* frontend (a small section
+  in its existing Settings panel). Two dropdowns populated from
+  `GET /api/chores/`; on change, PUT `/api/config/shopping_chore_id` /
+  `scan_chore_id`. Stock is a consumer, not a config UI for these.
 
-- **Guard** the modal: if either chore ID is unset, show the modal with a
-  single message "Pick the shopping and scan chores in settings first" and a
-  link that opens settings. Skip the attribution flow that session.
-
-### 5.2 Stock backend
-
-- **New file** `HA-grocy-stock/grocy_stock/app/chores_client.py`:
-  - httpx async client bound to `chores_base_url` from add-on options.
-  - 5s connect timeout, 10s read timeout, one retry on `ConnectError`.
-  - `async def get_persons() -> list[dict]`
-  - `async def get_chores() -> list[dict]`
-  - `async def complete_via_hook(chore_id: int, person: str,
-                                 suppress_followup: bool,
-                                 notes: str = "") -> dict`
-  - Raises `ChoresUnreachable` on transport failure; `ChoresAPIError(status,
-    body)` on non-2xx.
-
-- **New router** `HA-grocy-stock/grocy_stock/app/routers/shopping_session.py`:
-  - `GET /persons` → `chores_client.get_persons()`.
-  - `GET /chores` → `chores_client.get_chores()`.
-  - `POST /shopping-session/finish`:
-    ```python
-    class FinishBody(BaseModel):
-        shoppers: list[str]
-        scanners: list[str]
-        scan_count: int
-    ```
-    Reads `shopping_chore_id` / `scan_chore_id` from add-on options.
-    For each shopper:
-      `complete_via_hook(shopping_chore_id, person,
-                         suppress_followup=bool(scanners))`
-    For each scanner:
-      `complete_via_hook(scan_chore_id, person, suppress_followup=False)`
-    Aggregates results into
-    ```json
-    {
-      "shoppers": [{"person": "...", "ok": true,  "result": {...}},
-                   {"person": "...", "ok": false, "error": "..."}],
-      "scanners": [...]
-    }
-    ```
-    Returns 200 if all succeeded, 207 if any individual call failed, 502 if
-    Chores was completely unreachable.
-
-- **Modify** `HA-grocy-stock/grocy_stock/app/config.py` (or wherever add-on
-  options are loaded) to expose `chores_base_url`, `shopping_chore_id`,
-  `scan_chore_id`. Update `HA-grocy-stock/grocy_stock/config.json` schema
-  block accordingly. Defaults: `chores_base_url: ""` (user fills in), the
-  two IDs default to `null`. The Stock add-on README should document the
-  expected value — for the common case where Chores' add-on declares its
-  ports via `ports`, this is `http://<host_or_slug>:8100`. If Chores does
-  not declare host ports, add a `ports: {"8100/tcp": null}` entry in
-  `HA-chores/chores/config.json` so the API is reachable from sibling
-  add-ons (no host exposure — `null` means container-network only).
+- **On modal open**: fetch both chore IDs from
+  `GET ${INGRESS_PATH}/api/chores/config/shopping_chore_id` and
+  `GET .../config/scan_chore_id`. If either is null/missing, the modal
+  opens with "Pick the shopping and scan chores in Chores settings first"
+  and a link that opens Chores ingress. No hook calls fire that session.
 
 ### 5.3 Chores backend
 
@@ -288,16 +271,16 @@ No changes to the modal visuals.
 
 | Failure                                       | Result                                                                                                       |
 |-----------------------------------------------|--------------------------------------------------------------------------------------------------------------|
-| Chores unreachable from Stock                  | Stock returns 502; modal toast: "Couldn't reach Chores — scans saved, XP not credited." Modal closes anyway. |
-| `chore_id` not found / inactive in Chores      | Hook returns 404; Stock aggregates as failure for that person, toast lists the role.                         |
-| `person` not in Chores DB                      | Hook returns 404; Stock skips that attribution silently, logs a warning.                                     |
+| Chores unreachable (nginx 502 / network)       | Each fan-out call fails. Frontend toast: "Couldn't reach Chores — scans saved, XP not credited." Modal still closes. |
+| `chore_id` not found / inactive in Chores      | Hook returns 404 for that call; frontend aggregates as failure for that person, toast lists the failed role. |
+| `person` not in Chores DB                      | Hook returns 404; frontend toasts but doesn't block other persons.                                            |
 | `scanCount == 0`                               | Modal not opened; scanner closes as today.                                                                   |
 | Both roles skipped                             | No HTTP call made; modal closes; follow-up spawn does NOT happen (no shopping chore was completed at all).   |
-| Shoppers picked, scanners skipped              | Shopping chore completed for each shopper with `suppress_followup=False` → normal follow-up spawn fires once. |
-| Shoppers picked, scanners picked               | Shopping chore completed with `suppress_followup=True` → no follow-up. Scan chore completed for each scanner. |
+| Shoppers picked, scanners skipped              | Shopping chore completed for each shopper with `suppress_followup=False` → normal follow-up spawn fires once (only the first shopper's call spawns it; subsequent calls find the spawned instance and skip the duplicate-spawn branch). |
+| Shoppers picked, scanners picked               | Shopping chore completed with `suppress_followup=True` for each shopper → no follow-up. Scan chore completed for each scanner. |
 | Shoppers skipped, scanners picked              | Only scan chore completed for each scanner. No shopping chore → no follow-up question to begin with.         |
 | Chore IDs not configured in Stock settings     | Modal opens with "configure chores in settings" message and a link; no HTTP call.                            |
-| Partial failure (some persons OK, some not)    | Stock returns 207, toast lists failed persons by role.                                                       |
+| Partial failure (some persons OK, some not)    | `Promise.allSettled` collects results; toast lists failed persons by role; successes still take effect.       |
 | Celebration insert fails                       | Logged; the completion itself still succeeds. We don't fail the hook because of a missed popup.              |
 
 ## 7. Testing
@@ -324,22 +307,7 @@ No changes to the modal visuals.
 - `test_pending_celebrations_ack_scoped_to_requester` — ack with another
   person's id is silently ignored.
 
-### 7.2 Stock backend (pytest)
-
-Mock `chores_client` throughout.
-
-- `test_finish_fans_out_to_each_person` — 2 shoppers, 1 scanner ⇒ 3
-  `complete_via_hook` calls with correct args; shoppers have
-  `suppress_followup=True`.
-- `test_finish_suppress_false_when_scanners_skipped` — 1 shopper, 0
-  scanners ⇒ 1 call, `suppress_followup=False`.
-- `test_finish_partial_failure_returns_207` — one call raises
-  `ChoresAPIError`; response includes per-person `ok=False`.
-- `test_finish_returns_502_on_chores_unreachable` — first call raises
-  `ChoresUnreachable`; backend short-circuits.
-- `test_finish_with_unconfigured_chore_ids_returns_400`.
-
-### 7.3 Manual frontend verification
+### 7.2 Manual frontend verification
 
 (No automated frontend tests in either repo.)
 
@@ -385,11 +353,12 @@ their own row, their own XP, their own streak bump.
 ## 10. Rollout
 
 1. Land Chores backend changes (hook endpoint, migration, celebration
-   endpoints) and ship a new add-on version. The schema migration is
-   additive; the existing complete endpoint is byte-for-byte equivalent
-   after refactor.
+   endpoints, `ports` declaration) and ship a new add-on version. The
+   schema migration is additive; the existing complete endpoint is
+   byte-for-byte equivalent after the refactor.
 2. Land Chores frontend changes (drain pending celebrations on mount).
-3. Land Stock backend (`chores_client`, new router, option fields).
+3. Land Stock add-on config + nginx changes (`chores_url` option,
+   `/api/chores/` proxy block, env var wiring).
 4. Land Stock frontend (settings dropdowns + attribution modal + Finish
    integration).
 5. User configures chore IDs in Stock settings; feature is live.
