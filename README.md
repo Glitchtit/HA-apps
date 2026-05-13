@@ -9,9 +9,9 @@ A collection of Home Assistant add-ons for household inventory, recipe managemen
 | Add-on | Description |
 |--------|-------------|
 | [Storage](HA-storage/storage) | Central SQLite database for products, stock, recipes, and shopping lists |
-| [Scraper](grocy_scraper/grocy_scraper_addon) | Scrapes Finnish grocery sites (k-ruoka.fi, s-kaupat.fi) and populates Storage with AI-powered optimization |
-| [Stock](HA-grocy-stock/grocy_stock) | Stock management dashboard with barcode scanning and one-click consume |
-| [Recipe](HA-grocy-recipes/grocy_recipes) | AI-powered recipe scraping — paste a URL, get ingredients matched to your inventory |
+| [Scraper](HA-scraper/addon) | Scrapes Finnish grocery sites (k-ruoka.fi, s-kaupat.fi) and populates Storage with AI-powered optimization |
+| [Stock](HA-stock/stock) | Stock management dashboard with barcode scanning and one-click consume |
+| [Recipe](HA-recipes/recipes) | AI-powered recipe scraping — paste a URL, get ingredients matched to your inventory |
 
 ## Architecture
 
