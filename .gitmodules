@@ -1,12 +1,12 @@
-[submodule "HA-grocy-stock"]
-	path = HA-grocy-stock
-	url = https://github.com/Glitchtit/HA-grocy-stock.git
-[submodule "grocy_scraper"]
-	path = grocy_scraper
-	url = https://github.com/Glitchtit/grocy_scraper.git
-[submodule "HA-grocy-recipes"]
-	path = HA-grocy-recipes
-	url = https://github.com/Glitchtit/HA-grocy-recipes.git
+[submodule "HA-stock"]
+	path = HA-stock
+	url = https://github.com/Glitchtit/HA-stock.git
+[submodule "HA-scraper"]
+	path = HA-scraper
+	url = https://github.com/Glitchtit/HA-scraper.git
+[submodule "HA-recipes"]
+	path = HA-recipes
+	url = https://github.com/Glitchtit/HA-recipes.git
 [submodule "HA-storage"]
 	path = HA-storage
 	url = https://github.com/Glitchtit/HA-storage.git

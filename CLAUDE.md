@@ -10,10 +10,10 @@ Clone with submodules: `git clone --recurse-submodules …` or `git submodule up
 
 Submodules:
 - `HA-storage/storage` — FastAPI + SQLite, nginx on `8099`, FastAPI on `8100`, DB at `/data/storage.db`. **System of record.** Ships add-on **and** HACS integration side-by-side: the integration lives at the submodule root in `HA-storage/custom_components/ha_storage/` (sensors, todo, services), parallel to `HA-storage/storage/`.
-- `grocy_scraper/` — Python scraper shipped as both a Supervisor add-on (`grocy_scraper_addon/`) and a HA custom integration (`custom_components/grocy_scraper/`).
-- `HA-grocy-stock/grocy_stock` — React SPA behind nginx.
-- `HA-grocy-recipes/grocy_recipes` — React SPA + Python backend (Gemini/Claude/Ollama) behind nginx.
-- `HA-chores/chores` — FastAPI + React (`ingress_port: 8099`). Like `grocy_scraper/`, this submodule ships add-on **and** integration side-by-side: the integration lives at the submodule root in `HA-chores/custom_components/ha_chores/` (sensors, todo, calendar), parallel to `HA-chores/chores/`.
+- `HA-scraper/` — Python scraper shipped as both a Supervisor add-on (`addon/`) and a HA custom integration (`custom_components/scraper/`).
+- `HA-stock/stock` — React SPA behind nginx.
+- `HA-recipes/recipes` — React SPA + Python backend (Gemini/Claude/Ollama) behind nginx.
+- `HA-chores/chores` — FastAPI + React (`ingress_port: 8099`). Like `HA-scraper/`, this submodule ships add-on **and** integration side-by-side: the integration lives at the submodule root in `HA-chores/custom_components/ha_chores/` (sensors, todo, calendar), parallel to `HA-chores/chores/`.
 - `HA-lists/lists` — FastAPI + React (`ingress_port: 8099`). Goblin-Tools-style task manager: Folder → List → Item → Subtask hierarchy, spiciness-based AI breakdown (planned), household assignment. Ships add-on **and** HACS integration at `HA-lists/custom_components/ha_lists/`.
 
 Top-level folders that are **not** shipped: `Design system/` holds cross-frontend design tokens/mocks; `docs/` holds workflow notes.
@@ -23,11 +23,11 @@ Top-level folders that are **not** shipped: `Design system/` holds cross-fronten
 Run inside the relevant submodule. No linter/formatter is configured anywhere.
 
 ```bash
-# grocy_scraper (Python)
-cd grocy_scraper && python -m pytest tests/ -v
-cd grocy_scraper && python -m pytest tests/test_main.py::TestAiOptimize::test_optimize_updates_location -v
-# Tests only import the top-level `grocy_scraper/grocy_scraper/` copy — drift between
-# it and `grocy_scraper_addon/grocy_scraper/` will NOT surface here. Inspect both on change.
+# HA-scraper (Python)
+cd HA-scraper && python -m pytest tests/ -v
+cd HA-scraper && python -m pytest tests/test_main.py::TestAiOptimize::test_optimize_updates_location -v
+# Tests only import the top-level `HA-scraper/scraper/` copy — drift between
+# it and `HA-scraper/addon/scraper/` will NOT surface here. Inspect both on change.
 
 # HA-storage backend
 cd HA-storage/storage && python -m pytest app/tests/ -v
@@ -35,11 +35,11 @@ cd HA-storage/storage && python -m pytest app/tests/ -v
 # HA-storage frontend
 cd HA-storage/storage/frontend && npm install && npm run dev    # or: npm run build
 
-# HA-grocy-stock frontend (no tests)
-cd HA-grocy-stock/grocy_stock/frontend && npm install && npm run dev
+# HA-stock frontend (no tests)
+cd HA-stock/stock/frontend && npm install && npm run dev
 
-# HA-grocy-recipes frontend (no tests)
-cd HA-grocy-recipes/grocy_recipes/frontend && npm install && npm run dev
+# HA-recipes frontend (no tests)
+cd HA-recipes/recipes/frontend && npm install && npm run dev
 
 # HA-chores
 cd HA-chores/chores/app && python -m pytest tests/ -v
@@ -131,15 +131,15 @@ Key rules for all four frontends:
 
 ## Conventions that bite
 
-- **Each submodule has its own `.github/copilot-instructions.md`** with app-specific details. Read it before working in that submodule; the root file intentionally does not duplicate. `HA-grocy-stock/` additionally ships an `AGENTS.md` at its submodule root — read that too when touching Stock.
+- **Each submodule has its own `.github/copilot-instructions.md`** with app-specific details. Read it before working in that submodule; the root file intentionally does not duplicate. `HA-stock/` additionally ships an `AGENTS.md` at its submodule root — read that too when touching Stock.
 - **Submodule workflow:** commit and push inside the submodule *first*, then commit the updated pointer in the root repo. `.gitmodules` must stay on HTTPS for Supervisor compatibility even if local push remotes use SSH.
 - **Every user-facing change requires a version bump and changelog entry** in the touched submodule. Bump + rebuild after any add-on fix without waiting to be asked.
-  - `grocy_scraper/`: `grocy_scraper_addon/config.yaml`, `custom_components/grocy_scraper/manifest.json`, `grocy_scraper_addon/CHANGELOG.md`
+  - `HA-scraper/`: `addon/config.yaml`, `custom_components/scraper/manifest.json`, `addon/CHANGELOG.md`
   - `HA-storage/`: `storage/config.json`, `storage/CHANGELOG.md`, `custom_components/ha_storage/manifest.json`
-  - `HA-grocy-stock/`: `grocy_stock/config.json`, `grocy_stock/CHANGELOG.md`
-  - `HA-grocy-recipes/`: `grocy_recipes/config.json`, `grocy_recipes/CHANGELOG.md`
+  - `HA-stock/`: `stock/config.json`, `stock/CHANGELOG.md`
+  - `HA-recipes/`: `recipes/config.json`, `recipes/CHANGELOG.md`
   - `HA-chores/`: `chores/config.json`, `chores/CHANGELOG.md`
   - `HA-lists/`: `lists/config.json`, `lists/CHANGELOG.md`
 - **Changelogs use plain `## X.Y.Z` headers only.** No bracketed versions, no dates — Supervisor parsing depends on this.
-- **Scraper package is duplicated on purpose:** `grocy_scraper/grocy_scraper/` is copied into `grocy_scraper/grocy_scraper_addon/grocy_scraper/`. When changing shared modules (`scraper.py`, `storage_client.py`, `skaupat_client.py`, `searxng_client.py`), keep both copies in sync. The add-on flow uses `grocy_scraper_addon/main.py`.
-- **Use Storage terminology** (`parent_id`, `unit_id`, `picture_filename`, `active`) — not legacy Grocy names — when touching integrations, API clients, or migration logic.
+- **Scraper package is duplicated on purpose:** `HA-scraper/scraper/` is copied into `HA-scraper/addon/scraper/`. When changing shared modules (`scraper.py`, `storage_client.py`, `skaupat_client.py`, `searxng_client.py`), keep both copies in sync. The add-on flow uses `addon/main.py`.
+- **Use HA-Storage terminology** (`parent_id`, `unit_id`, `picture_filename`, `active`) when touching integrations, API clients, or migration logic.
