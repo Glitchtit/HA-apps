@@ -1,6 +1,6 @@
 # UI Kit — Stock
 
-Mobile-first pantry dashboard. Ported from `HA-grocy-stock/grocy_stock/frontend/src/App.jsx`.
+Mobile-first pantry dashboard. Ported from `HA-stock/stock/frontend/src/App.jsx`.
 
 ## Patterns captured
 - **Trapezoid location tabs** (`clip-path: polygon(12% 0%, 88% 0%, 100% 100%, 0% 100%)`), active tab raises to `bg-2` surface.

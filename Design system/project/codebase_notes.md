@@ -14,7 +14,7 @@ Distilled from reading the four SPAs. Useful context for anyone hand-building ag
 - Tab bar pattern: horizontal scroll, underline-highlight for active. `border-b-2 border-emerald-500 text-emerald-400` when active.
 - Loading: spinner + `text-gray-500` helper text.
 
-## `HA-grocy-stock/grocy_stock/`  —  pantry
+## `HA-stock/stock/`  —  pantry
 - Entire UI is `src/App.jsx` (~2200 lines).
 - Touch gestures: swipe → consume/add, long-press → drag for directional action (incl. `↓ Open`).
 - Barcode scanner: full-screen, html5-qrcode, flip button, continuous mode with discover queue.
@@ -22,7 +22,7 @@ Distilled from reading the four SPAs. Useful context for anyone hand-building ag
 - Toast system top-right; `type ∈ {error, success, info, undo}`; undo type has a shrinking progress bar.
 - Product rows have a 48x48 rounded thumbnail with 🥫 fallback emoji.
 
-## `HA-grocy-recipes/grocy_recipes/`  —  recipe scraper
+## `HA-recipes/recipes/`  —  recipe scraper
 - Mobile-first grid of recipe cards (`grid-cols-2 sm:grid-cols-3 lg:grid-cols-4`).
 - Recipe card: aspect-video image + 2-line clamped title + "N annosta" serving count.
 - Recipe detail: full-screen overlay, `max-w-md`, `rounded-2xl`, scrolling ingredient list with red/amber/green tint rows.

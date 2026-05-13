@@ -1,6 +1,6 @@
 # UI Kit — Recipes
 
-Recipe scraper UI. Ported from `HA-grocy-recipes/grocy_recipes/frontend/`.
+Recipe scraper UI. Ported from `HA-recipes/recipes/frontend/`.
 
 ## Patterns
 - **URL composer at top** — sticky header, input + "Hae" primary button (cobalt in our theme; emerald in source).

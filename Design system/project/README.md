@@ -26,8 +26,8 @@ See `codebase_notes.md` for structural notes pulled from the repos.
 - **Repo (umbrella):** `Glitchtit/HA-apps` — Git‑submodule release umbrella.
   - Root: <https://github.com/Glitchtit/HA-apps>
   - `HA-storage/storage/frontend/` — Storage admin UI (React + Tailwind).
-  - `HA-grocy-stock/grocy_stock/frontend/` — Stock dashboard (React + Tailwind + html5‑qrcode).
-  - `HA-grocy-recipes/grocy_recipes/frontend/` — Recipe scraper UI (React + Tailwind + axios).
+  - `HA-stock/stock/frontend/` — Stock dashboard (React + Tailwind + html5‑qrcode).
+  - `HA-recipes/recipes/frontend/` — Recipe scraper UI (React + Tailwind + axios).
   - `HA-chores/chores/frontend/` — Chores + Pet (React + Tailwind, heavy CSS animation).
 - All frontends use **Tailwind 3.4** with the default theme (no `extend:` tokens). Every colour in the source code is a raw Tailwind class — we've promoted the ones that recur to named tokens in `colors_and_type.css`.
 - No dedicated brand guidelines exist in the repo. Icon choices are emoji, chosen per‑tab in the `App.jsx` files.
