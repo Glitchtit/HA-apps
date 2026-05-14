@@ -38,26 +38,30 @@ def color_distance(a: tuple[int, int, int], b: tuple[int, int, int]) -> int:
 
 
 def _is_checkerboard_corner(seeds: list[tuple[int, int, int]]) -> bool:
-    """Detect the editor's transparency checkerboard: two distinct grays around
-    ~200 and ~245 RGB (with possible color tint) alternating between sampled
-    corners. If the corners are mostly one color (likely a real opaque image
-    edge — sky, wall, etc.), the source is not a sprite-with-checkerboard.
+    """Detect the editor's transparency checkerboard.
+
+    The checkerboard pattern is two alternating GRAYS — RGB triples where
+    R ≈ G ≈ B. Real opaque image edges (sky, wood, leaves, sprites) almost
+    always carry color information (one channel dominates).
+
+    Test:
+      - all 8 sampled corners must be near-grayscale (max channel spread ≤ 18,
+        which tolerates the subtle blue/pink tints Gemini sometimes adds)
+      - and at least 2 of them must differ from each other by ≥ 25 in luminance
+        (i.e. there really are two alternating tones, not a single solid gray)
     """
     if not seeds:
         return False
-    # Brightness per seed
-    lums = [(r + g + b) / 3 for (r, g, b) in seeds]
-    bright = sum(1 for l in lums if l > 220)
-    mid = sum(1 for l in lums if 180 <= l <= 220)
-    # A real checkerboard typically has ~half-and-half bright/mid samples.
-    # A solid opaque background of any colour will be near-uniform.
-    if bright >= 2 and mid >= 2:
-        return True
-    return False
+    for r, g, b in seeds:
+        spread = max(r, g, b) - min(r, g, b)
+        if spread > 18:
+            return False  # has color tint → real image content, not checkerboard
+    lums = sorted((r + g + b) / 3 for (r, g, b) in seeds)
+    return (lums[-1] - lums[0]) >= 25
 
 
 def transparentize(path: str, tolerance: int = 50, out_path: str | None = None,
-                   max_clear_pct: float = 95.0) -> int:
+                   max_clear_pct: float = 95.0, force: bool = False) -> int:
     """Make the background of *path* transparent. Returns pixels cleared, or -1
     if the operation was aborted by the safety net.
 
@@ -78,9 +82,10 @@ def transparentize(path: str, tolerance: int = 50, out_path: str | None = None,
     ]
     seeds = [(p[0], p[1], p[2]) for p in seed_pixels]
 
-    if not _is_checkerboard_corner(seeds):
+    if not force and not _is_checkerboard_corner(seeds):
         # Corners don't look like the typical checkerboard. Source is probably
         # a full-canvas image (e.g. a house background). Don't touch it.
+        # Pass --force to override.
         return -1
 
     def is_bg(rgb: tuple[int, int, int]) -> bool:
@@ -139,17 +144,18 @@ def transparentize(path: str, tolerance: int = 50, out_path: str | None = None,
 
 
 def _process(paths: list[str], tolerance: int, quiet: bool = False,
-             max_clear_pct: float = 95.0) -> int:
+             max_clear_pct: float = 95.0, force: bool = False) -> int:
     rc = 0
     for p in paths:
         if not Path(p).is_file():
             print(f"  skip (not a file): {p}", file=sys.stderr)
             continue
         try:
-            cleared = transparentize(p, tolerance=tolerance, max_clear_pct=max_clear_pct)
+            cleared = transparentize(p, tolerance=tolerance,
+                                     max_clear_pct=max_clear_pct, force=force)
             if cleared < 0:
                 if not quiet:
-                    print(f"  skipped {p} (corners aren't a checkerboard or fill would be destructive)")
+                    print(f"  skipped {p} (corners aren't a checkerboard or fill would be destructive; pass --force to override)")
             elif not quiet:
                 print(f"  transparentized {p} ({cleared} px cleared)")
         except Exception as e:
@@ -165,6 +171,8 @@ def main() -> int:
                     help="max RGB distance from corner seed to consider as background (default 50)")
     ap.add_argument("--max-clear-pct", type=float, default=95.0,
                     help="abort if the flood-fill would clear more than this percent of the image (default 95)")
+    ap.add_argument("--force", action="store_true",
+                    help="bypass the corner-pattern safety check (use when the source clearly has a uniform bg that doesn't match the auto-detected checkerboard pattern)")
     ap.add_argument("--quiet", action="store_true", help="suppress per-file success messages")
     args = ap.parse_args()
 
@@ -181,7 +189,8 @@ def main() -> int:
         ap.print_help(sys.stderr)
         return 1
 
-    return _process(paths, tolerance=args.tolerance, quiet=args.quiet, max_clear_pct=args.max_clear_pct)
+    return _process(paths, tolerance=args.tolerance, quiet=args.quiet,
+                    max_clear_pct=args.max_clear_pct, force=args.force)
 
 
 if __name__ == "__main__":
