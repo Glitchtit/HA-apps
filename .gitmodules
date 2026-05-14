@@ -16,3 +16,6 @@
 [submodule "HA-lists"]
 	path = HA-lists
 	url = https://github.com/Glitchtit/HA-lists.git
+[submodule "HA-print"]
+	path = HA-print
+	url = https://github.com/Glitchtit/HA-print.git
