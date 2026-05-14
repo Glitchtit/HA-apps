@@ -13,3 +13,7 @@ __pycache__/
 
 # Node
 node_modules/
+
+# nanobanana scratch outputs (raw JPEGs with painted-on checkerboard backgrounds;
+# the canonical sprites live under each submodule's frontend/src/assets/)
+nanobanana-output/
