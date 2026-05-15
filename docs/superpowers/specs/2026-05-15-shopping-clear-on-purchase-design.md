@@ -74,8 +74,15 @@ Algorithm:
    call so the file reads top-down: manual purchase clearance, then
    threshold-based auto-add sync.
 
-The whole thing runs inside the same transaction as the stock insert. If
-the helper raises, the purchase rolls back too.
+The helper runs immediately after `add_stock` commits the stock insert,
+mirroring the pre-existing `sync_auto_shopping(conn)` post-commit
+pattern in the same function. The stock insert and the shopping
+clearance are therefore *not* a single atomic transaction — if the
+helper raises mid-loop, prior DELETEs/UPDATEs are committed but the
+stock insert remains. In practice the helper does only DELETEs and
+UPDATEs against rows it just read, so failure modes are limited;
+treating them as eventually-consistent matches how `sync_auto_shopping`
+has always behaved.
 
 ## 5. Implementation
 
