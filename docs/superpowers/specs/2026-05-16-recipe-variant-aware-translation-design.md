@@ -59,7 +59,7 @@ Inside the existing `Examples:` block (after line 1241, before `Do NOT include a
 
 ## Test coverage
 
-One new test in `HA-recipes/recipes/tests/test_matching.py` (or a new `test_translation.py` if the existing file is scoped strictly to matching).
+One new test in `HA-recipes/recipes/tests/test_matching.py`.
 
 **`test_translate_preserves_sugar_variants`**
 - Mocks `_call_ai_json` to return the JSON structure we expect Gemini to produce given the upgraded prompt.
@@ -75,9 +75,9 @@ Because `_call_ai_json` is mocked, this is a **prompt-output contract test** —
 
 ## Rollout
 
-**Version.** Patch bump in `HA-recipes/recipes/config.json` (e.g. third-position increment of the current version).
+**Version.** Patch bump in `HA-recipes/recipes/config.json` from `2.2.0` → `2.2.1`.
 
-**Changelog entry** in `HA-recipes/recipes/CHANGELOG.md`, plain `## X.Y.Z` header (no date, no brackets — Supervisor parsing depends on this):
+**Changelog entry** in `HA-recipes/recipes/CHANGELOG.md` under a new `## 2.2.1` header (plain — no date, no brackets, Supervisor parsing depends on this):
 
 > Recipe ingredient translator now preserves non-interchangeable sugar, fat, flour, and dairy variants (syltsocker, vaniljsocker, brun farin, vispgrädde, etc.) instead of collapsing them onto the generic product.
 
@@ -91,7 +91,7 @@ Because `_call_ai_json` is mocked, this is a **prompt-output contract test** —
 ## Files changed
 
 - `HA-recipes/recipes/backend.py` — prompt edits to `_translate_ingredients()`.
-- `HA-recipes/recipes/tests/test_matching.py` — new test `test_translate_preserves_sugar_variants` (or new file if scoping demands).
+- `HA-recipes/recipes/tests/test_matching.py` — new test `test_translate_preserves_sugar_variants`.
 - `HA-recipes/recipes/config.json` — version bump.
 - `HA-recipes/recipes/CHANGELOG.md` — new `## X.Y.Z` entry.
 
