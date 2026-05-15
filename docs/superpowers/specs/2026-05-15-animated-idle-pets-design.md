@@ -16,7 +16,7 @@ Replace the 4 static `idle.png` sprites for the adult and mythic stages of both 
 |---|---|---|
 | Animation form | Real animated image files (animated WebP) | Same as particles — autoplays in `<img>`, full alpha, native Vite import. |
 | Frame source | **`nanobanana:edit_image`** (not generate) | Frame coherence is critical for pets — the same character must just close its eyes, not become a different axolotl. Edit preserves everything outside the modified area. |
-| Animation scope | **Blink + subtle full-body sway** | Per user's preference. The blink is the "active" beat; the body sway adds liveliness without needing additional AI edits. |
+| Animation scope | **Blink only** (body sway dropped during pilot) | Body sway was originally in scope, but during the pilot we removed it — the existing CSS `pet-breathe` animation already handles wrapper-level motion, and dropping the per-pixel sway lets WebP's frame-dedup compression shrink files dramatically (351 KB → 67 KB for the pilot). |
 | Sprite scope | **4 sprites only**: `orange_black/{adult,mythic}/idle` + `blue_black/{adult,mythic}/idle` | Minimum-viable scope per user's choice. Earlier stages (egg/baby/teen) stay static. |
 | Loop length | **24 frames at 100 ms** = 2.4 s loop | ~1 blink every 2.4 s reads as natural; faster cadence (16f × 100 ms = 1.6 s) felt overly busy. |
 
