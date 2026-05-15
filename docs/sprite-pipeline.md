@@ -124,6 +124,49 @@ Use this decision table:
 | Pure color motion (rainbow) | `crossfade` long | `hue_cycle` | Rainbow: `crossfade` + `hue_cycle(360)` |
 | Float upward (bubbles, music) | `crossfade` | `drift_wrap` (negative) + opacity | Bubbles: `crossfade` + `drift_wrap(-0.06)` + fade |
 
+## Edit-based pattern: nanobanana `edit_image` for frame-coherent sprites
+
+Use when the animation needs **frame coherence** — same character/object, just one feature changes. The classic case is a character blink: same pet, same pose, same colors, eyes closed. `generate_image` can't promise that across calls; `edit_image` can.
+
+### When to use this vs generate-based
+
+| Need | Use |
+|---|---|
+| Many small details vary per frame (sparkles, fire) | `generate_image` (the original hybrid pattern above) |
+| Same character does ONE thing differently (blink, head turn, single limb move) | `edit_image` (this pattern) |
+| Same character moves through a multi-step pose change | Multiple `edit_image` calls, each editing from frame_01 with a different prompt |
+
+### Prompt style for `edit_image`
+
+Lock everything you want preserved, name only what should change:
+
+> "Edit this pixel-art [subject] so [specific change]. Keep everything else identical: same body, same pose, same colors, same outline, same transparent background. Only [the edited area] changes."
+
+The "keep everything identical" language matters — without it, the model often interprets the edit as a license to redraw nearby pixels too.
+
+### Assembly with `Image.blend` for in-between frames
+
+When you have just two source frames (e.g. eyes open + eyes closed), you don't need to AI-generate the mid-blink frames. `PIL.Image.blend(open, closed, alpha)` produces a clean linear blend that reads as half-closed:
+
+```python
+half_blink = Image.blend(frame_01_open, idle_02_closed, 0.5)
+```
+
+This is essentially a manual single-step `crossfade` mode. Use it sparingly — only when the in-between literally is a half-state (blink, fade). For animations where the in-between needs distinct geometry (e.g. a tail mid-flick), generate that as its own frame.
+
+### Recipe for a blink loop
+
+24 frames at 100 ms, 1 blink per cycle, mostly open:
+
+| Frames | Source | Notes |
+|---|---|---|
+| 0–18 | open | optional subtle body sway overlay (`wiggle` ±1°, `drift_wrap` ±0.005) |
+| 19 | blend(open, closed, 0.5) | half-closed going down |
+| 20 | closed | fully closed |
+| 21 | closed | held closed (1 extra frame reads as a real blink, not a glitch) |
+| 22 | blend(open, closed, 0.5) | half-closed coming up |
+| 23 | open | back to open |
+
 ## Script template
 
 Place at `<submodule>/<frontend>/scripts/animate_<thing>.py`. The script should be standalone — runs with system Python + Pillow (+ numpy for hue-cycle).
