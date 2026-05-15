@@ -15,6 +15,7 @@ Submodules:
 - `HA-recipes/recipes` — React SPA + Python backend (Gemini/Claude/Ollama) behind nginx.
 - `HA-chores/chores` — FastAPI + React (`ingress_port: 8099`). Like `HA-scraper/`, this submodule ships add-on **and** integration side-by-side: the integration lives at the submodule root in `HA-chores/custom_components/ha_chores/` (sensors, todo, calendar), parallel to `HA-chores/chores/`.
 - `HA-lists/lists` — FastAPI + React (`ingress_port: 8099`). Goblin-Tools-style task manager: Folder → List → Item → Subtask hierarchy, spiciness-based AI breakdown (planned), household assignment. Ships add-on **and** HACS integration at `HA-lists/custom_components/ha_lists/`.
+- `HA-print/print` — FastAPI + python-escpos behind nginx (`ingress_port: 8099`, plus `8100/tcp` exposed as a sibling-accessible port so HA-stock and HA-recipes nginx can proxy `/api/print/*` straight into it). Stateless thermal-receipt renderer for an IP-connected 80mm ESC/POS device (Xprinter XP-80T). Ships add-on **and** HACS integration at `HA-print/custom_components/ha_print/` (services `ha_print.shopping_list`, `ha_print.recipe`); the integration pulls list data from HA-storage and recipe data from HA-recipes, then POSTs to the add-on. No frontend.
 
 Top-level folders that are **not** shipped: `Design system/` holds cross-frontend design tokens/mocks; `docs/` holds workflow notes.
 
@@ -48,6 +49,9 @@ cd HA-chores/chores/frontend && npm install && npm run dev
 # HA-lists
 cd HA-lists/lists/app && python -m pytest tests/ -v
 cd HA-lists/lists/frontend && npm install && npm run dev
+
+# HA-print (tests use escpos.printer.Dummy — no printer hardware required)
+cd HA-print/print && python -m pytest app/tests/ -v
 ```
 
 ## Architecture (big picture)
@@ -55,6 +59,7 @@ cd HA-lists/lists/frontend && npm install && npm run dev
 - **Storage is the canonical data model.** Products, stock, recipes, shopping, config, files, and AI optimize orchestration all live behind its REST API. Scraper/Stock/Recipe talk only to Storage (never to each other). Optimize runs as background `/api/ai/optimize` tasks with single-flight execution and pollable status.
 - **Scraper ships twice.** The Supervisor add-on runs the periodic scraper + ingress web server; the HA integration exposes config flow, sidebar UI, and WebSocket handlers. Both paths write through `StorageClient`.
 - **Recipe backend** proxies `/api/storage/*`, `/api/scraper/*`, `/api/backend/*`, `/api/storage-files/*` via nginx; exposes provider-aware `/api/config` readiness; scrapes recipe pages; matches ingredients against Storage.
+- **HA-print is an output sink, not a data owner.** Both `ha_print.shopping_list` and `ha_print.recipe` services are pull-then-POST: the integration fetches from Storage/Recipes, the caller pre-groups items (frontends or the service handler), and the body is POSTed to the add-on's `/api/print/*`. HA-stock and HA-recipes also expose 🖨 buttons that proxy `/api/print/*` directly to the add-on's sibling `8100/tcp`. Codepage is forced CP858 at connection time; aisle ordering is **mirrored** from HA-stock (see Conventions).
 - **Startup order is loose.** Storage comes up first; scraper and recipe backend block on Storage health at startup; Stock/Recipe frontends poll Storage health with bounded retry before enabling UI flows. Do not assume any service is ready — add retry.
 - **All add-ons are ingress-aware.** API keys stay server-side, nginx injects the ingress path into the frontend, and browser code must call proxied relative API routes — never hard-coded hosts.
 - **Finnish-first product data.** Storage product names are stored in Finnish. User-facing UI and recipe input can be any language; matching happens after translation and resolves to the Finnish canonical product.
@@ -140,6 +145,8 @@ Key rules for all four frontends:
   - `HA-recipes/`: `recipes/config.json`, `recipes/CHANGELOG.md`
   - `HA-chores/`: `chores/config.json`, `chores/CHANGELOG.md`
   - `HA-lists/`: `lists/config.json`, `lists/CHANGELOG.md`
+  - `HA-print/`: `print/config.json`, `print/CHANGELOG.md`, `custom_components/ha_print/manifest.json`
 - **Changelogs use plain `## X.Y.Z` headers only.** No bracketed versions, no dates — Supervisor parsing depends on this.
 - **Scraper package is duplicated on purpose:** `HA-scraper/scraper/` is copied into `HA-scraper/addon/scraper/`. When changing shared modules (`scraper.py`, `storage_client.py`, `skaupat_client.py`, `searxng_client.py`), keep both copies in sync. The add-on flow uses `addon/main.py`.
+- **HA-print's aisle ordering mirrors HA-stock.** `HA-print/custom_components/ha_print/aisles.py` duplicates the `FI_AISLE_ORDER` list from `HA-stock/stock/frontend/src/App.jsx` (~lines 112–155). When the JS list changes, update the Python copy in the same submodule-then-pointer-bump dance — the add-on never reorders; only the integration's `ha_print.shopping_list` handler does.
 - **Use HA-Storage terminology** (`parent_id`, `unit_id`, `picture_filename`, `active`) when touching integrations, API clients, or migration logic.
