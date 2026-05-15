@@ -1,20 +1,19 @@
 # Sprite & particle animation pipeline
 
-Reference for producing animated sprites for HA-apps frontends (HA-chores, HA-stock, HA-recipes, HA-storage). Captures the "procedural-from-PNG" recipe established in [`docs/superpowers/specs/2026-05-15-animated-webp-particles-design.md`](superpowers/specs/2026-05-15-animated-webp-particles-design.md). Read this first when asked to animate a sprite, build a sprite-sheet, or convert an existing static asset to a moving one.
+Reference for producing animated sprites for HA-apps frontends (HA-chores, HA-stock, HA-recipes, HA-storage). Captures the **hybrid AI-frames + procedural-assembly** recipe established in [`docs/superpowers/specs/2026-05-15-animated-webp-particles-design.md`](superpowers/specs/2026-05-15-animated-webp-particles-design.md). Read this first when asked to animate a sprite, build a sprite sheet, or convert an existing static asset to a moving one.
 
-## When to use this approach
+## Three approaches, pick by content type
 
-Procedural-from-PNG is the right choice when:
+| Approach | What it is | Best for |
+|---|---|---|
+| **Hybrid AI + Pillow** (default) | nanobanana generates 3–6 style-matched *variant frames* per sprite; Pillow assembles them into a coherent loop with crossfades + global motion overlay. | Sprites where per-frame *artistic variety* matters (sparkles look different each frame) AND you need *coherent looping motion*. This is the right default for particle effects. |
+| **Pure procedural** | One source PNG, motion entirely from Pillow transforms (rotate/drift/scale/hue). | Sprites with dense element coverage where the motion *is* the variety (rainbow color cycle, hue-shifting palette swaps, simple drift). Cheapest path. |
+| **Sprite sheet + CSS** | Frames concatenated into one PNG, played back via `background-position` + `@keyframes steps()`. | UI that needs **state-driven** playback — play on hover, pause on idle, sync with a React state value. Animated WebP can't be paused. |
 
-- You have one (or several) static PNGs with **dense element coverage** (many snowflakes scattered across the frame, a bouquet of hearts, etc.) — applying a small motion to the whole frame reads as continuous motion of the elements.
-- The motion is **simple and looping**: rotate, drift, scale-pulse, opacity-pulse, hue-cycle, jitter, flicker.
-- The asset will be rendered at **much smaller dimensions than the source** — downscaling absorbs minor procedural imperfections.
-- You want **zero new authoring effort** and a single script that anyone can re-run.
+**Don't use any of these when:**
 
-Don't use it when:
-
-- The animation requires **frame-by-frame character variation** (different sparkle shapes, sequential paw prints showing distinct steps). Author the frames or build a sprite sheet.
-- You need **physics-driven** motion (cloth, soft-body deformation). Use a tool that solves physics; the procedural recipes here are kinematic.
+- The animation needs **frame-by-frame character variation that loops perfectly** (a paw walking cycle with distinct foot placements). Author the frames in an animation tool; AI gen won't produce frame-coherent walk cycles.
+- You need **physics-driven** motion (cloth, soft-body deformation). Use a physics solver.
 - The asset is already small (<256 px) — procedural transforms compound aliasing.
 
 ## Format choice: always animated WebP
@@ -28,44 +27,171 @@ For sprites rendered as `<img>` in the HA frontends:
 | GIF | 1-bit | 3–5× larger | Avoid — visible jagged halos around any sub-pixel-alpha edge. |
 | Sprite sheet + CSS | N/A | depends | Use when you need per-frame CSS control (pause, sync with state) — see *Sprite-sheet pattern* below. |
 
-## Script template
+## Hybrid pattern: nanobanana frames + Pillow assembly
 
-Place at `<submodule>/<frontend>/scripts/animate_<thing>.py`. The script should be standalone — no project deps, runs with system Python + Pillow.
+This is the default for new sprite-animation work. nanobanana provides per-frame artistic variety; the Pillow script provides the coherent loop.
+
+### Folder layout
+
+```
+<assets-dir>/
+├── <sprite>.png            (existing canonical art — also serves as frame_01)
+├── <sprite>.webp           (assembled animated output)
+└── sources/
+    ├── <sprite>_02.png     (additional AI-generated variant frames)
+    ├── <sprite>_03.png
+    └── ...
+```
+
+The existing PNG is `*_01` implicitly. Only the *additional* sources go in `sources/`. This avoids duplication and lets static contexts (shop previews, etc.) keep using the canonical first frame.
+
+### Phase 1 — generating frame sources via nanobanana
+
+For each sprite, generate 3–6 *style-matched variant* frames. Goal: same palette, density, and composition style as frame 01, with **different specific arrangement of elements**.
+
+**Prompt template:**
+
+> "[sprite description matching frame 01's style], variant N, transparent background, same color palette and density as reference, different specific arrangement of elements, 1024x1024"
+
+Run each via the `nanobanana:generate` skill. The repo's `transparentize.py` PostToolUse hook strips checkerboard backgrounds automatically.
+
+**Tips:**
+
+- Generate one variant first and eyeball it against frame 01 before producing the rest. Style drift compounds — catch it early.
+- Lock the prompt prefix exactly across all variants of a single sprite. Only the variation-language differs ("scattered higher up", "denser to the left", "fewer but larger elements").
+- 3–4 sources is enough for crossfade-mode sprites; 5–6 for sequential-reveal sprites where each frame is visibly distinct.
+
+### Phase 2a — assembly concepts
+
+Each output frame is built from **(A) a frame-source selection** plus **(B) an optional global motion overlay**.
+
+**Frame-source modes:**
+
+- **`crossfade`** — output frame is an alpha-blend of the current and next source frame. Each source has a center frame; output frames between centers interpolate. Smooth morphing, best when sources are visually similar.
+- **`reveal`** — each source gets `output_frames // N` consecutive frames. Snap from one to the next, optionally with a single crossfade transition frame. Used when sources are visually distinct (paws, lightning, sparkle bursts).
+- **`flicker`** — like `reveal` but with explicit per-frame opacity multipliers. Used for lightning (full / dim / off / full).
+
+**Global motion overlays** (applied on top of whichever source is active):
+
+- `rotate(deg, t)` — continuous spin
+- `wiggle(deg, t)` — back-and-forth (`sin`-driven)
+- `drift_wrap(amount, t)` — vertical drift with seamless wrap
+- `pulse(amp, t)` — scale pulse around center
+- `twinkle(low, t)` — opacity oscillation
+- `jitter(x_amp, y_amp, t)` — random per-frame offset within bounds
+- `hue_cycle(deg, t)` — HSV hue shift (color-only; no compositional change)
+
+See the *Recipe library* below for implementations.
+
+### Phase 2b — sketch of the assembly script
 
 ```python
-"""Procedural sprite animator.
+# Per-sprite assembly recipe
+RECIPES = {
+    "particle_sparkle": {
+        "sources": 6,                          # uses frame_01 + sources/*_02..*_06
+        "mode": "reveal",
+        "overlay": ("rotate", 15),             # ±15° gentle spin
+    },
+    "particle_snow": {
+        "sources": 4,
+        "mode": "crossfade",
+        "overlay": ("drift_wrap", 0.10),       # 10% downward per loop
+    },
+    # ... etc
+}
 
-Reads <source>.png files from <input dir> and writes animated <name>.webp
-files alongside them. Idempotent — safe to re-run.
+def assemble(name, recipe):
+    sources = load_sources(name, recipe["sources"])   # → list of N images at TARGET_SIZE
+    out_frames = []
+    for n in range(FRAMES):
+        t = n / FRAMES
+        base = pick_source(sources, t, recipe["mode"])
+        frame = apply_overlay(base, t, recipe.get("overlay"))
+        out_frames.append(frame)
+    save_webp(out_frames, name)
+```
+
+### Choosing mode + overlay per sprite
+
+Use this decision table:
+
+| Sprite character | Mode | Overlay | Example |
+|---|---|---|---|
+| Chaotic flicker (sparkle, fire, lightning) | `reveal` | Light wiggle or jitter | Sparkle: `reveal` + `wiggle(15)` |
+| Smooth morph (snow, hearts, stars) | `crossfade` | Drift or pulse | Snow: `crossfade` + `drift_wrap(0.10)` |
+| Distinct cascade (paws) | `reveal` | None | Paws: `reveal` only |
+| Pure color motion (rainbow) | `crossfade` long | `hue_cycle` | Rainbow: `crossfade` + `hue_cycle(360)` |
+| Float upward (bubbles, music) | `crossfade` | `drift_wrap` (negative) + opacity | Bubbles: `crossfade` + `drift_wrap(-0.06)` + fade |
+
+## Script template
+
+Place at `<submodule>/<frontend>/scripts/animate_<thing>.py`. The script should be standalone — runs with system Python + Pillow (+ numpy for hue-cycle).
+
+```python
+"""Hybrid sprite animator: AI-generated frame sources + Pillow loop assembly.
+
+For each sprite:
+  - Loads <sprite>.png as frame_01 and sources/<sprite>_NN.png as frame_02..N
+  - Applies the per-sprite recipe (frame-source mode + optional overlay)
+  - Writes <sprite>.webp (animated, looped) alongside the source PNG
+
+Idempotent — safe to re-run.
 """
 from __future__ import annotations
 from pathlib import Path
 from PIL import Image, ImageChops
-import colorsys
 import math
 
-SRC = Path(__file__).parent.parent / "src" / "assets" / "<path-to-sprites>"
+ROOT = Path(__file__).parent.parent / "src" / "assets" / "<path-to-sprites>"
+SOURCES_DIR = ROOT / "sources"
 FRAMES = 16
 DURATION_MS = 80              # 16 × 80 ms = 1.28 s loop
 TARGET_SIZE = 256             # Source is 1024; downscale aggressively
 QUALITY = 85
 WEBP_METHOD = 6               # 0=fast, 6=slow/best
 
-# ── Per-sprite motion recipes ───────────────────────────────────────────────
+# ── Per-sprite recipes: source count + assembly mode + optional overlay ────
+# overlay tuple: (name, *params) — see overlay() below
 RECIPES = {
-    "particle_sparkle": {"motion": "rotate_pulse",     "amp": (360, 0.08)},
-    "particle_stars":   {"motion": "rotate_twinkle",   "amp": (360, 0.3)},
-    "particle_hearts":  {"motion": "pulse",            "amp": (0.10,)},
-    "particle_bubbles": {"motion": "drift_fade",       "amp": (-0.06, 0.5)},
-    "particle_fire":    {"motion": "jitter_pulse",     "amp": (0.02, 0.01, 0.05)},
-    "particle_lightning":{"motion": "flicker",         "amp": (0.0, 0.5, 0.0, 1.0)},
-    "particle_snow":    {"motion": "drift_wrap",       "amp": (0.10,)},  # downward
-    "particle_leaves":  {"motion": "drift_wiggle",     "amp": (0.10, 8)},
-    "particle_blossoms":{"motion": "drift_wiggle_pulse","amp":(0.08, 5, 0.05)},
-    "particle_music":   {"motion": "wiggle_rise",      "amp": (10, -0.05)},
-    "particle_paws":    {"motion": "cascade",          "amp": (3,)},  # 3 thirds
-    "particle_rainbow": {"motion": "hue_cycle",        "amp": (360,)},
+    "particle_sparkle":  {"sources": 6, "mode": "reveal",    "overlay": ("wiggle",     15)},      # ±15° back-and-forth
+    "particle_stars":    {"sources": 4, "mode": "crossfade", "overlay": ("rotate",     90)},      # 90° spin per loop
+    "particle_hearts":   {"sources": 3, "mode": "crossfade", "overlay": ("pulse",      0.10)},
+    "particle_bubbles":  {"sources": 4, "mode": "crossfade", "overlay": ("drift_fade", -0.06, 0.5)},
+    "particle_fire":     {"sources": 6, "mode": "reveal",    "overlay": ("jitter",     0.02, 0.01)},
+    "particle_lightning":{"sources": 4, "mode": "flicker",   "overlay": None},                    # flicker mode supplies opacity
+    "particle_snow":     {"sources": 4, "mode": "crossfade", "overlay": ("drift_wrap", 0.10)},
+    "particle_leaves":   {"sources": 4, "mode": "crossfade", "overlay": ("drift_wiggle", 0.10, 8)},
+    "particle_blossoms": {"sources": 4, "mode": "crossfade", "overlay": ("drift_wiggle_pulse", 0.08, 5, 0.05)},
+    "particle_music":    {"sources": 4, "mode": "crossfade", "overlay": ("wiggle_rise", 10, -0.05)},
+    "particle_paws":     {"sources": 4, "mode": "reveal",    "overlay": None},
+    "particle_rainbow":  {"sources": 4, "mode": "crossfade", "overlay": ("hue_cycle",  360)},
 }
+
+# ── Source loading ──────────────────────────────────────────────────────────
+def load_sources(name: str, n: int) -> list[Image.Image]:
+    """Frame 01 = the canonical PNG; frames 02..n = sources/<name>_NN.png."""
+    frame_01 = (ROOT / f"{name}.png")
+    out = [Image.open(frame_01).convert("RGBA").resize((TARGET_SIZE, TARGET_SIZE), Image.LANCZOS)]
+    for i in range(2, n + 1):
+        path = SOURCES_DIR / f"{name}_{i:02d}.png"
+        out.append(Image.open(path).convert("RGBA").resize((TARGET_SIZE, TARGET_SIZE), Image.LANCZOS))
+    return out
+
+# ── Frame-source selection modes ────────────────────────────────────────────
+def pick_source(sources: list, t: float, mode: str) -> Image.Image:
+    N = len(sources)
+    pos = t * N
+    if mode == "crossfade":
+        i = int(pos) % N
+        f = pos - int(pos)
+        return Image.blend(sources[i], sources[(i + 1) % N], f)
+    if mode == "reveal":
+        return sources[int(pos) % N]
+    if mode == "flicker":
+        # Treat sources as the flicker sequence (full, dim, off, alt) — opacity from sources themselves
+        return sources[int(pos) % N]
+    raise ValueError(f"unknown mode: {mode}")
 
 # ── Motion primitives ───────────────────────────────────────────────────────
 def rotate_pulse(im, t, deg, pulse):
@@ -125,16 +251,28 @@ def _hue_shift(im_rgb, fraction):
     ], axis=-1)
     return Image.fromarray((rgb_out * 255).clip(0, 255).astype("uint8"), "RGB")
 
+# ── Overlay dispatcher ──────────────────────────────────────────────────────
+def overlay(im: Image.Image, t: float, spec: tuple | None) -> Image.Image:
+    if spec is None:
+        return im
+    name, *args = spec
+    if name == "rotate":     return im.rotate(args[0] * t, resample=Image.BICUBIC)                    # continuous 0→deg
+    if name == "wiggle":     return im.rotate(args[0] * math.sin(t * 2 * math.pi), resample=Image.BICUBIC)  # ±deg
+    if name == "drift_wrap": return drift_wrap(im, t, *args)
+    if name == "hue_cycle":  return hue_cycle(im, t, *args)
+    if name == "pulse":      return _scale(im, 1 + args[0] * math.sin(t * 2 * math.pi))
+    # ... add jitter, drift_fade, wiggle_rise, drift_wiggle, drift_wiggle_pulse
+    raise ValueError(f"unknown overlay: {name}")
+
 # ── Main loop ───────────────────────────────────────────────────────────────
-def build(path: Path, recipe: dict) -> None:
-    src = Image.open(path).convert("RGBA")
-    src = src.resize((TARGET_SIZE, TARGET_SIZE), Image.LANCZOS)
+def build(name: str, recipe: dict) -> None:
+    sources = load_sources(name, recipe["sources"])
     frames = []
     for n in range(FRAMES):
         t = n / FRAMES
-        frame = dispatch(src, t, recipe)
-        frames.append(frame)
-    out = path.with_suffix(".webp")
+        base = pick_source(sources, t, recipe["mode"])
+        frames.append(overlay(base, t, recipe.get("overlay")))
+    out = ROOT / f"{name}.webp"
     frames[0].save(
         out,
         save_all=True,
@@ -145,22 +283,11 @@ def build(path: Path, recipe: dict) -> None:
         method=WEBP_METHOD,
         lossless=False,
     )
-    print(f"{path.name} → {out.name} ({out.stat().st_size // 1024} KB)")
-
-def dispatch(im, t, recipe):
-    motion = recipe["motion"]
-    amp = recipe["amp"]
-    if motion == "rotate_pulse":   return rotate_pulse(im, t, *amp)
-    if motion == "drift_wrap":     return drift_wrap(im, t, *amp)
-    if motion == "hue_cycle":      return hue_cycle(im, t, *amp)
-    # ... add the rest as you implement them
-    raise ValueError(f"unknown motion: {motion}")
+    print(f"{name}: {len(sources)} sources → {out.name} ({out.stat().st_size // 1024} KB)")
 
 if __name__ == "__main__":
-    for png in sorted(SRC.glob("*.png")):
-        stem = png.stem
-        if stem in RECIPES:
-            build(png, RECIPES[stem])
+    for name, recipe in RECIPES.items():
+        build(name, recipe)
 ```
 
 ## Recipe library
@@ -222,12 +349,13 @@ This is more code but gives full play/pause/scrub control. The pet-state `STATE_
 
 ## Checklist for new sprite-animation work
 
-- [ ] Source PNGs exist and have dense element coverage (or use a different approach)
-- [ ] Decide motion per sprite (see recipe library)
-- [ ] Decide target size — render box × 2-3× DPR, no bigger
-- [ ] Drop a script at `<submodule>/<frontend>/scripts/animate_<thing>.py` based on the template above
+- [ ] Decide approach: hybrid (default) / pure procedural / sprite-sheet (see top of doc)
+- [ ] For each sprite, decide: how many AI source frames? Which mode (`crossfade` / `reveal` / `flicker`)? Which overlay (if any)?
+- [ ] Generate AI source frames via `nanobanana:generate` — lock the prompt prefix per sprite, vary only the arrangement language. Eyeball one against frame 01 before producing the rest.
+- [ ] Commit AI sources to `sources/` (sized like the originals, RGBA, transparent background)
+- [ ] Drop an assembly script at `<submodule>/<frontend>/scripts/animate_<thing>.py` based on the template above
 - [ ] Run, eyeball one output, then bulk-run
-- [ ] Commit outputs alongside source PNGs
+- [ ] Commit `.webp` outputs alongside source PNGs (animated WebPs are the bundled artifact)
 - [ ] Flip `.png` → `.webp` imports in the consuming JSX
 - [ ] Bump submodule version + add changelog entry
 - [ ] Bump umbrella pointer
