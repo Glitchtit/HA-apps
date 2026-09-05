@@ -23,3 +23,10 @@ nanobanana-output/
 
 # Docs (workflow notes, superpowers plans/specs)
 docs/
+
+# Browser-automation scratch (Playwright MCP logs/snapshots, ad-hoc screenshots)
+.playwright-mcp/
+/*.png
+
+# Superpowers subagent task reports
+.superpowers-task-*-report.md
