@@ -1,58 +1,88 @@
-# Glitchtit's Home Assistant Add-ons
+<p align="center">
+  <img src="Design%20system/icons/png/storage.png" width="44" alt="">&nbsp;
+  <img src="Design%20system/icons/png/scraper.png" width="44" alt="">&nbsp;
+  <img src="Design%20system/icons/png/stock.png" width="44" alt="">&nbsp;
+  <img src="Design%20system/icons/png/recipes.png" width="44" alt="">&nbsp;
+  <img src="Design%20system/icons/png/chores.png" width="44" alt="">&nbsp;
+  <img src="Design%20system/icons/png/lists.png" width="44" alt="">&nbsp;
+  <img src="Design%20system/icons/png/print.png" width="44" alt="">
+</p>
 
-[![Open your Home Assistant instance and show the add add-on repository dialog.](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2FGlitchtit%2FHA-apps)
+<h1 align="center">Glitchtit's Home Assistant apps</h1>
 
-A collection of Home Assistant add-ons for household inventory, recipe management, and grocery shopping. Managed via Git submodules.
+<p align="center">
+  <b>Household add-ons for Home Assistant: food, stock, recipes, chores and to-dos.</b><br>
+  Seven add-ons that share one data store and one look, made for a Finnish household.
+</p>
 
-## Add-ons
+<p align="center">
+  <a href="https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2FGlitchtit%2FHA-apps"><img src="https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg" alt="Add this repository to Home Assistant"></a>
+</p>
 
-| | Add-on | Description |
-|---|--------|-------------|
-| <img src="Design%20system/icons/png/storage.png" width="48"> | [Storage](HA-storage/storage) | Central SQLite database for products, stock, recipes, and shopping lists |
-| <img src="Design%20system/icons/png/scraper.png" width="48"> | [Scraper](HA-scraper/addon) | Scrapes Finnish grocery sites (k-ruoka.fi, s-kaupat.fi) and populates Storage with AI-powered optimization |
-| <img src="Design%20system/icons/png/stock.png" width="48"> | [Stock](HA-stock/stock) | Stock management dashboard with barcode scanning and one-click consume |
-| <img src="Design%20system/icons/png/recipes.png" width="48"> | [Recipe](HA-recipes/recipes) | AI-powered recipe scraping — paste a URL, get ingredients matched to your inventory |
-| <img src="Design%20system/icons/png/chores.png" width="48"> | [Chores](HA-chores/chores) | Gamified household chores with XP, streaks, and a calendar |
-| <img src="Design%20system/icons/png/lists.png" width="48"> | [Lists](HA-lists/lists) | Folders, lists, items, and subtasks, with household assignment |
-| <img src="Design%20system/icons/png/print.png" width="48"> | [Print](HA-print/print) | Shopping lists and recipes on an 80mm thermal receipt printer |
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Glitchtit/HA-recipes/main/docs/screenshots/hero.png" alt="Recipes" width="100%">
+</p>
 
-Icons and logos come from one generator: `python scripts/make_icons.py` (masters in `Design system/icons/`).
+## 📦 The apps
 
-## Architecture
+| | App | What it does | HACS integration |
+|---|-----|--------------|:---:|
+| <img src="Design%20system/icons/png/storage.png" width="48" alt="Storage"> | [**Storage**](https://github.com/Glitchtit/HA-storage) | The shared database: products, stock, recipes, shopping list and images. Install it first | ✅ |
+| <img src="Design%20system/icons/png/scraper.png" width="48" alt="Scraper"> | [**Scraper**](https://github.com/Glitchtit/HA-scraper) | Fills Storage with Finnish grocery products, prices and store availability | ✅ |
+| <img src="Design%20system/icons/png/stock.png" width="48" alt="Stock"> | [**Stock**](https://github.com/Glitchtit/HA-stock) | Phone-first pantry: scan, consume, use-soon list and an aisle-ordered shopping list | |
+| <img src="Design%20system/icons/png/recipes.png" width="48" alt="Recipes"> | [**Recipe**](https://github.com/Glitchtit/HA-recipes) | Paste a recipe URL; every ingredient is matched to a real product | ✅ |
+| <img src="Design%20system/icons/png/chores.png" width="48" alt="Chores"> | [**Chores**](https://github.com/Glitchtit/HA-chores) | Household chores as a game: XP, streaks, quests and a pet house to decorate | ✅ |
+| <img src="Design%20system/icons/png/lists.png" width="48" alt="Lists"> | [**Lists**](https://github.com/Glitchtit/HA-lists) | Folders, lists and subtasks, with AI task breakdown and household assignment | ✅ |
+| <img src="Design%20system/icons/png/print.png" width="48" alt="Print"> | [**Print**](https://github.com/Glitchtit/HA-print) | Shopping lists, recipes and custom designs on an 80 mm receipt printer | ✅ |
 
-All add-ons communicate through the **Storage** add-on, which provides a REST API backed by SQLite. The Scraper, Stock, and Recipe add-ons include retry logic to handle any startup ordering.
+## 📸 A look around
+
+<table>
+  <tr>
+    <td width="50%"><a href="https://github.com/Glitchtit/HA-stock"><img src="https://raw.githubusercontent.com/Glitchtit/HA-stock/main/docs/screenshots/hero.png" alt="Stock"></a></td>
+    <td width="50%"><a href="https://github.com/Glitchtit/HA-storage"><img src="https://raw.githubusercontent.com/Glitchtit/HA-storage/main/docs/screenshots/insights.png" alt="Storage insights"></a></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Stock: pantry, shopping list and use-soon</sub></td>
+    <td align="center"><sub>Storage: stock value and monthly spend</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><a href="https://github.com/Glitchtit/HA-chores"><img src="https://raw.githubusercontent.com/Glitchtit/HA-chores/main/docs/screenshots/hero.png" alt="Chores"></a></td>
+    <td width="50%"><a href="https://github.com/Glitchtit/HA-lists"><img src="https://raw.githubusercontent.com/Glitchtit/HA-lists/main/docs/screenshots/hero.png" alt="Lists"></a></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Chores: pet house and today's chores</sub></td>
+    <td align="center"><sub>Lists: lists, spiciness and subtasks</sub></td>
+  </tr>
+</table>
+
+## 🚀 Installation
+
+1. Click the button above, or open **Settings → Add-ons → Add-on Store → ⋮ → Repositories** and add `https://github.com/Glitchtit/HA-apps`
+2. Install **Storage** first, then any of the others. Chores and Lists also work on their own
+3. Optional: add the HACS integrations (each app's README has the steps) for sensors, to-do lists and actions in automations and voice assistants
+
+## 🧭 How they fit together
+
+Storage is the system of record: Scraper, Stock and Recipe keep their data there and wait for it at startup. Storage asks Scraper when it needs to find a product, and Print reads the shopping list from Storage.
 
 ```
-Storage  ←──  Scraper  (discovers products, AI optimization)
-   ↑
-   ├──────  Stock     (consume/add stock, barcode scanning)
-   │
-   └──────  Recipe    (scrape recipes, match ingredients)
+             ┌──────────── Scraper   finds products, prices, availability
+             │
+  Storage  ◄─┼──────────── Stock     scan, consume, shopping list ──┐
+             │                                                     ├──►  Print   receipts
+             └──────────── Recipe    import recipes, match products ┘
+
+  Chores, Lists   standalone, with their own databases
 ```
 
-## Installation
+## 🛠️ Development
 
-1. Add this repository to Home Assistant:
-   **Settings → Add-ons → Add-on Store → ⋮ → Repositories**
-2. Paste: `https://github.com/Glitchtit/HA-apps`
-3. Install **Storage** first, then the other add-ons.
-
-## Development
-
-This repository uses Git submodules. After cloning:
+This repository bundles the apps as Git submodules; each app lives in its own repository with its own README and tests.
 
 ```bash
 git clone --recurse-submodules https://github.com/Glitchtit/HA-apps.git
+git submodule update --remote --merge   # pull every app to its latest commit
 ```
 
-Or if already cloned:
-
-```bash
-git submodule update --init --recursive
-```
-
-To update all submodules to their latest commits:
-
-```bash
-git submodule update --remote --merge
-```
+Icons and logos come from one generator: `python scripts/make_icons.py` (masters in `Design system/icons/`).
