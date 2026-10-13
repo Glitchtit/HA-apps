@@ -26,7 +26,7 @@ Run inside the relevant submodule. No linter/formatter is configured anywhere.
 ```bash
 # HA-scraper (Python)
 cd HA-scraper && python -m pytest tests/ -v
-cd HA-scraper && python -m pytest tests/test_main.py::TestAiOptimize::test_optimize_updates_location -v
+cd HA-scraper && python -m pytest tests/test_main.py::TestUpdatePrices::test_update_writes_unit_price_from_krapi -v
 # Tests only import the top-level `HA-scraper/scraper/` copy — drift between
 # it and `HA-scraper/addon/scraper/` will NOT surface here. Inspect both on change.
 
