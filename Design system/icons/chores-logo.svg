@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="679" height="256" viewBox="0 0 679 256">
+
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1F2937"/>
+      <stop offset="1" stop-color="#0A0D14"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.82" cy="0.86" r="0.75">
+      <stop offset="0" stop-color="#FF4F00" stop-opacity="0.30"/>
+      <stop offset="1" stop-color="#FF4F00" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="cobalt" cx="0.12" cy="0.08" r="0.7">
+      <stop offset="0" stop-color="#2E6BD6" stop-opacity="0.28"/>
+      <stop offset="1" stop-color="#2E6BD6" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="679" height="256" rx="72" fill="url(#bg)"/>
+  <rect width="679" height="256" rx="72" fill="url(#cobalt)"/>
+  <rect width="679" height="256" rx="72" fill="url(#glow)"/>
+  <rect x="2" y="2" width="675" height="252" rx="70" fill="none"
+        stroke="#FFFFFF" stroke-opacity="0.09" stroke-width="4"/>
+
+  <g transform="translate(52 52.0) scale(6.333333333333333)" fill="none" stroke="#F3F4F6"
+     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <g transform="rotate(32 12 12)">
+        <path d="M12 1v10"/>
+        <rect x="9.25" y="11" width="5.5" height="3" rx="1"/>
+        <path d="M9.25 14 6 21.5h12L14.75 14Z" fill="#FF4F00"/>
+        <path d="M10.5 17.5l-.6 4M13.5 17.5l.6 4"/>
+      </g>
+      <path d="M5 2.5v5M2.5 5h5" stroke-width="1.8"/>
+    </g>
+
+  <text x="244" y="167.2" fill="#F3F4F6"
+        font-family="Space Grotesk" font-weight="700" font-size="112"
+        letter-spacing="-2">Chores</text>
+</svg>
