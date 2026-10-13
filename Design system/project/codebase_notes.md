@@ -27,7 +27,7 @@ Distilled from reading the four SPAs. Useful context for anyone hand-building ag
 - Recipe card: aspect-video image + 2-line clamped title + "N annosta" serving count.
 - Recipe detail: full-screen overlay, `max-w-md`, `rounded-2xl`, scrolling ingredient list with red/amber/green tint rows.
 - URL composer at top: sticky header, input + "Hae" (Fetch) button, emerald primary.
-- Finnish copy: `Ainekset`, `Ohjeet`, `Lähde`, `Lisää ostoslistalle`, `Poista resepti`, `Peruuta`.
+- Copy is English (`Ingredients`, `Steps`, `Source`, `Add to shopping list`, `Delete recipe`, `Cancel`); only product/group/store names and units are Finnish data.
 
 ## `HA-chores/chores/`  —  gamified chores + pet
 - Modular: `Dashboard, ChoreList, MyChores, Leaderboard, Achievements, Settings, HouseholdOverview, Pet, GameEffects`.

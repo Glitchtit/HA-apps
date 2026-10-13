@@ -16,5 +16,5 @@ Key facts:
 - Re-themed palette: International Orange `#FF4F00` + Cobalt Blue `#0047AB` for brand; emerald/amber/red kept as semantic.
 - Tailwind-style. Rounded-xl / rounded-2xl everywhere.
 - Emoji IS the iconography. Lucide as fallback only.
-- Copy voice: casual, terse, Finnish/English mixed, imperative buttons, no marketing.
+- Copy voice: casual, terse, English UI (Finnish only in product/group/store data), imperative buttons, no marketing.
 - Import `colors_and_type.css` first; use the CSS vars it exposes.

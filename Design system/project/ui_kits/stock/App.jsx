@@ -204,7 +204,7 @@ const StockApp = () => {
         {products.length === 0 && (
           <div style={{ textAlign: 'center', padding: 40, color: 'var(--fg-3)' }}>
             <div style={{ fontSize: 40, marginBottom: 8 }}>🥫</div>
-            <div style={{ fontSize: 13 }}>Ei tuotteita täällä</div>
+            <div style={{ fontSize: 13 }}>No products here</div>
           </div>
         )}
       </div>

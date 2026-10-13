@@ -70,13 +70,13 @@ The voice of the product is **casual, terse, affectionate, and bilingual**. It n
 
 ### Voice
 - **First‑person plural / second‑person.** The Chores app says "My Chores", "Today's Chores", "Keep in stock". Nobody says "you" at the user directly; things are just labelled.
-- **Imperatives win.** `Keep in stock`, `Consume all`, `Open 1`, `Scan a barcode`, `Poista resepti` (Delete recipe), `Lisää ostoslistalle` (Add to shopping list). Button copy is verbs, no trailing punctuation, no hedging.
-- **Finnish‑first for recipes + products.** Recipe UI labels are written in Finnish (`Ainekset`, `Ohjeet`, `Haetaan…`). Other apps mix English and Finnish freely. Don't translate either away.
-- **Diagnostic honesty.** Error states are blunt: `⚠️ Storage ei tavoitettavissa` ("Storage not reachable"), `Could not connect to Chores API`, `Stock list may be outdated — pull down to refresh.`
+- **Imperatives win.** `Keep in stock`, `Consume all`, `Open 1`, `Scan a barcode`, `Delete recipe`, `Add to shopping list`. Button copy is verbs, no trailing punctuation, no hedging.
+- **English UI, Finnish data.** All UI copy is English (`Ingredients`, `Steps`, `Fetching…`). Product names, product groups/aisles, store names and units stay Finnish because they are data from Storage.
+- **Diagnostic honesty.** Error states are blunt: `⚠️ Storage not reachable`, `Could not connect to Chores API`, `Stock list may be outdated — pull down to refresh.`
 - **Numbers are factual.** `2 in stock (1 opened)`, `6 queued for lookup`, `attempt 12`. No decoration.
 
 ### Casing
-- **Sentence case** for buttons, labels, headers. Never ALL‑CAPS (except the occasional eyebrow `AINEKSET` tracking‑expanded).
+- **Sentence case** for buttons, labels, headers. Never ALL‑CAPS (except the occasional eyebrow `INGREDIENTS` tracking‑expanded).
 - **Title Case** is rare — used only for product/page names (`My Chores`, `Household Overview`).
 - **Lowercase** for inline metadata: `you`, `kept`, `active`.
 

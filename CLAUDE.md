@@ -62,7 +62,7 @@ cd HA-print/print && python -m pytest app/tests/ -v
 - **HA-print is an output sink, not a data owner.** Both `ha_print.shopping_list` and `ha_print.recipe` services are pull-then-POST: the integration fetches from Storage/Recipes, the caller pre-groups items (frontends or the service handler), and the body is POSTed to the add-on's `/api/print/*`. HA-stock and HA-recipes also expose 🖨 buttons that proxy `/api/print/*` directly to the add-on's sibling `8100/tcp`. Codepage is forced CP858 at connection time; aisle ordering is **mirrored** from HA-stock (see Conventions).
 - **Startup order is loose.** Storage comes up first; scraper and recipe backend block on Storage health at startup; Stock/Recipe frontends poll Storage health with bounded retry before enabling UI flows. Do not assume any service is ready — add retry.
 - **All add-ons are ingress-aware.** API keys stay server-side, nginx injects the ingress path into the frontend, and browser code must call proxied relative API routes — never hard-coded hosts.
-- **Finnish-first product data.** Storage product names are stored in Finnish. User-facing UI and recipe input can be any language; matching happens after translation and resolves to the Finnish canonical product.
+- **English UI, Finnish data.** Every app's interface (labels, buttons, toasts, errors, printed receipt headings) is English. Finnish stays only in data: product names, product groups/aisles, store names, Storage units, and the parsing/matching that understands Finnish/Swedish input. Recipe input can be any language; matching resolves to the Finnish canonical product. Never write new UI copy in Finnish just because the surrounding data is Finnish.
 
 ## Design system
 
@@ -75,7 +75,7 @@ Key rules for all four frontends:
 - **Emoji is the icon system.** No icon font in production. Tabs/sections use emoji (🗄️ 📦 🍽️ 🧹). Chevrons/close use Unicode glyphs (`▾ ✕`).
 - **Radii.** `rounded-lg` chips/inputs, `rounded-xl` buttons/cards, `rounded-2xl` overlays, `rounded-full` avatars.
 - **No Tailwind custom tokens.** Raw utility classes only — no `tailwind.config.js` extension.
-- **Copy voice.** Sentence case, imperative buttons, Finnish/English mixed, no marketing copy.
+- **Copy voice.** Sentence case, imperative buttons, English, no marketing copy.
 
 ## Workflow Orchestration
 

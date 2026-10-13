@@ -46,7 +46,7 @@ const RecipeCard = ({ r, onOpen }) => (
         position: 'absolute', top: 8, right: 8, padding: '3px 8px',
         borderRadius: 999, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)',
         fontSize: 11, fontWeight: 600, fontFamily: 'var(--font-mono)',
-      }}>{r.servings} annosta</span>
+      }}>{r.servings} servings</span>
     </div>
     <div style={{ padding: 12 }}>
       <div style={{ fontWeight: 600, fontSize: 14, lineHeight: 1.3,
@@ -112,23 +112,23 @@ const RecipeDetail = ({ recipe, onClose }) => {
         <div style={{ overflow: 'auto', padding: 18, display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div>
             <div style={{ fontSize: 22, fontWeight: 700, fontFamily: 'var(--font-display)' }}>{recipe.title}</div>
-            <div style={{ fontSize: 12, color: 'var(--fg-3)', marginTop: 4 }}>{recipe.servings} annosta · 45 min · k-ruoka.fi</div>
+            <div style={{ fontSize: 12, color: 'var(--fg-3)', marginTop: 4 }}>{recipe.servings} servings · 45 min · k-ruoka.fi</div>
           </div>
 
           <div>
-            <div className="ds-eyebrow" style={{ marginBottom: 8 }}>Ainekset</div>
+            <div className="ds-eyebrow" style={{ marginBottom: 8 }}>Ingredients</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               {INGREDIENTS.map((i) => <IngredientRow key={i.name} i={i} />)}
             </div>
           </div>
 
           <div>
-            <div className="ds-eyebrow" style={{ marginBottom: 8 }}>Ohjeet</div>
+            <div className="ds-eyebrow" style={{ marginBottom: 8 }}>Steps</div>
             <ol style={{ paddingLeft: 20, fontSize: 13, color: 'var(--fg-2)', lineHeight: 1.6, display: 'flex', flexDirection: 'column', gap: 8 }}>
               <li>Kuori ja kuutioi perunat. Kuullota sipuli voissa kattilan pohjalla.</li>
-              <li>Lisää perunat ja vesi. Keitä 10 min tai kunnes perunat pehmenevät.</li>
-              <li>Lisää lohikuutiot ja kerma. Anna hautua 5 min.</li>
-              <li>Mausta suolalla ja tilllillä ennen tarjoilua.</li>
+              <li>Add the potatoes and water. Simmer for 10 min or until the potatoes are soft.</li>
+              <li>Add the salmon cubes and cream. Let it simmer for 5 min.</li>
+              <li>Season with salt and dill before serving.</li>
             </ol>
           </div>
         </div>
@@ -136,8 +136,8 @@ const RecipeDetail = ({ recipe, onClose }) => {
           padding: '12px 14px calc(12px + env(safe-area-inset-bottom))',
           borderTop: '1px solid var(--line-2)', display: 'flex', gap: 8,
         }}>
-          <button className="btn brand-cobalt" style={{ flex: 1 }}>Lisää ostoslistalle</button>
-          <button className="btn ghost" style={{ color: 'var(--danger)' }}>Poista</button>
+          <button className="btn brand-cobalt" style={{ flex: 1 }}>Add to shopping list</button>
+          <button className="btn ghost" style={{ color: 'var(--danger)' }}>Delete</button>
         </div>
       </div>
     </div>
@@ -168,7 +168,7 @@ const RecipesApp = () => {
       }}>
         <div style={{ fontSize: 22 }}>🍽️</div>
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 16, fontWeight: 700, fontFamily: 'var(--font-display)' }}>Reseptit</div>
+          <div style={{ fontSize: 16, fontWeight: 700, fontFamily: 'var(--font-display)' }}>Recipes</div>
           <div style={{ fontSize: 11, color: 'var(--fg-3)' }}>6 tallennettua · 2 odottaa</div>
         </div>
       </header>
@@ -181,7 +181,7 @@ const RecipesApp = () => {
         <input
           className="field"
           style={{ flex: 1 }}
-          placeholder="Liitä reseptin URL…"
+          placeholder="Paste a recipe URL…"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
         />
@@ -191,7 +191,7 @@ const RecipesApp = () => {
           className="btn brand-cobalt"
           style={{ opacity: !url || loading ? 0.5 : 1, minWidth: 72 }}
         >
-          {loading ? '⏳' : 'Hae'}
+          {loading ? '⏳' : 'Import'}
         </button>
       </div>
 
