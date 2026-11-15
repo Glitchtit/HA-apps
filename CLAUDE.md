@@ -137,7 +137,7 @@ Key rules for all four frontends:
 ## Conventions that bite
 
 - **Each submodule has its own `.github/copilot-instructions.md`** with app-specific details. Read it before working in that submodule; the root file intentionally does not duplicate. `HA-stock/` additionally ships an `AGENTS.md` at its submodule root — read that too when touching Stock.
-- **Submodule workflow:** commit and push inside the submodule *first*, then commit the updated pointer in the root repo. `.gitmodules` must stay on HTTPS for Supervisor compatibility even if local push remotes use SSH.
+- **Submodule workflow:** commit and push inside the submodule *first*, then commit the updated pointer in the root repo. `.github/workflows/bump-submodules.yml` also moves every pointer to its submodule's `main` every 30 minutes (so PRs merged on GitHub reach Supervisor), so `git pull` the root before committing there. `.gitmodules` must stay on HTTPS for Supervisor compatibility even if local push remotes use SSH.
 - **Every user-facing change requires a version bump and changelog entry** in the touched submodule. Bump + rebuild after any add-on fix without waiting to be asked.
   - `HA-scraper/`: `addon/config.yaml`, `custom_components/scraper/manifest.json`, `addon/CHANGELOG.md`
   - `HA-storage/`: `storage/config.json`, `storage/CHANGELOG.md`, `custom_components/ha_storage/manifest.json`

@@ -1,0 +1,35 @@
+name: Bump submodule pointers
+
+# Agents and merged PRs land in the add-on repositories, and nothing there can
+# move the pointers here. Supervisor only sees what this repository points at.
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency: bump-submodules
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: true
+      - name: Point every submodule at its default branch
+        run: |
+          git submodule update --remote
+          changed=$(git diff --name-only)
+          [ -z "$changed" ] && exit 0
+          {
+            echo "Bump pointers: $(echo $changed | sed 's/ /, /g')"
+            echo
+            for s in $changed; do echo "$s: $(git -C "$s" log -1 --format=%s)"; done
+          } > "$RUNNER_TEMP/msg"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -qa -F "$RUNNER_TEMP/msg"
+          git push
