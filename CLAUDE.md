@@ -27,8 +27,8 @@ Run inside the relevant submodule. No linter/formatter is configured anywhere.
 # HA-scraper (Python)
 cd HA-scraper && python -m pytest tests/ -v
 cd HA-scraper && python -m pytest tests/test_main.py::TestUpdatePrices::test_update_writes_unit_price_from_krapi -v
-# Tests only import the top-level `HA-scraper/scraper/` copy — drift between
-# it and `HA-scraper/addon/scraper/` will NOT surface here. Inspect both on change.
+# Tests import the shipped `HA-scraper/addon/scraper/` copy. CI also runs
+# `diff -r -x __pycache__ addon/scraper custom_components/scraper/scraperlib`.
 
 # HA-storage backend
 cd HA-storage/storage && python -m pytest app/tests/ -v
@@ -56,8 +56,8 @@ cd HA-print/print && python -m pytest app/tests/ -v
 
 ## Architecture (big picture)
 
-- **Storage is the canonical data model.** Products, stock, recipes, shopping, config, files, and AI optimize orchestration all live behind its REST API. Scraper/Stock/Recipe talk only to Storage (never to each other). Optimize runs as background `/api/ai/optimize` tasks with single-flight execution and pollable status.
-- **Scraper ships twice.** The Supervisor add-on runs the periodic scraper + ingress web server; the HA integration exposes config flow, sidebar UI, and WebSocket handlers. Both paths write through `StorageClient`.
+- **Storage is the canonical data model.** Products, stock, recipes, shopping, config, files, and AI enrichment all live behind its REST API. Scraper/Stock/Recipe talk only to Storage (never to each other). Storage fills in every product it creates on its own (`enrich.py`: a background queue that links, merges multi-packs and sets group/location/shelf life), so callers must not trigger an optimize after creating a product. `/api/ai/optimize` is the manual re-check, a single-flight background task with pollable status; it never overwrites values marked `manual` in `facts_meta`.
+- **Scraper ships twice.** The Supervisor add-on runs the ingress web server (search, discover, update, add_products as fire-and-poll tasks) and a nightly Update at `update_hour`; the HA integration exposes a config flow and the `scraper.search_products` / `scraper.add_product` actions (the sidebar is the add-on's ingress panel). Both create products through `create_in_storage()` in `storage_client.py`.
 - **Recipe backend** proxies `/api/storage/*`, `/api/scraper/*`, `/api/backend/*`, `/api/storage-files/*` via nginx; exposes provider-aware `/api/config` readiness; scrapes recipe pages; matches ingredients against Storage.
 - **HA-print is an output sink, not a data owner.** Both `ha_print.shopping_list` and `ha_print.recipe` services are pull-then-POST: the integration fetches from Storage/Recipes, the caller pre-groups items (frontends or the service handler), and the body is POSTed to the add-on's `/api/print/*`. HA-stock and HA-recipes also expose 🖨 buttons that proxy `/api/print/*` directly to the add-on's sibling `8100/tcp`. Codepage is forced CP858 at connection time; aisle ordering is **mirrored** from HA-stock (see Conventions).
 - **Startup order is loose.** Storage comes up first; scraper and recipe backend block on Storage health at startup; Stock/Recipe frontends poll Storage health with bounded retry before enabling UI flows. Do not assume any service is ready — add retry.
@@ -147,6 +147,6 @@ Key rules for all four frontends:
   - `HA-lists/`: `lists/config.json`, `lists/CHANGELOG.md`
   - `HA-print/`: `print/config.json`, `print/CHANGELOG.md`, `custom_components/ha_print/manifest.json`
 - **Changelogs use plain `## X.Y.Z` headers only.** No bracketed versions, no dates — Supervisor parsing depends on this.
-- **Scraper package is duplicated on purpose:** `HA-scraper/scraper/` is copied into `HA-scraper/addon/scraper/`. When changing shared modules (`scraper.py`, `storage_client.py`, `skaupat_client.py`, `searxng_client.py`), keep both copies in sync. The add-on flow uses `addon/main.py`.
+- **Scraper library is duplicated on purpose:** `HA-scraper/addon/scraper/` (add-on image) and `HA-scraper/custom_components/scraper/scraperlib/` (HACS integration) must stay byte-identical. When changing a shared module (`scraper.py`, `storage_client.py`, `lookup.py`, `skaupat_client.py`, `searxng_client.py`), edit both; CI fails on drift. The add-on flow uses `addon/main.py`.
 - **HA-print's aisle ordering mirrors HA-stock.** `HA-print/custom_components/ha_print/aisles.py` duplicates the `FI_AISLE_ORDER` list from `HA-stock/stock/frontend/src/App.jsx` entry for entry, in the same order (`HA-print/tests/test_aisles.py` checks the count). When the JS list changes, update the Python copy in the same submodule-then-pointer-bump dance — the add-on never reorders; only the integration's `ha_print.shopping_list` handler does.
 - **Use HA-Storage terminology** (`parent_id`, `unit_id`, `picture_filename`, `active`) when touching integrations, API clients, or migration logic.
